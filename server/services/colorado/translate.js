@@ -4,29 +4,7 @@
 // it moves over unchanged. Every function only speaks up when it's confident
 // what a field means; anything it doesn't recognize is left for the raw
 // field dump instead of guessed at.
-
-function findVal(row, aliases) {
-  for (const a of aliases) {
-    if (row[a] !== undefined && row[a] !== null && row[a] !== '') return row[a];
-  }
-  return null;
-}
-
-function findByPattern(row, pattern) {
-  for (const key of Object.keys(row)) {
-    if (pattern.test(key) && row[key] !== undefined && row[key] !== null && row[key] !== '') {
-      return { key, value: row[key] };
-    }
-  }
-  return null;
-}
-
-function fmtDatePlain(val) {
-  if (!val) return null;
-  const dt = new Date(val);
-  if (isNaN(dt) || dt.getFullYear() <= 1) return null;
-  return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-}
+const { findVal, findByPattern, fmtDatePlain } = require('../../lib/fields');
 
 // Colorado's 7 water divisions, by basin — purely geographic/administrative,
 // not an indicator of quality or value.
