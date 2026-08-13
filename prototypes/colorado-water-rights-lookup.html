@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colorado Water Rights Lookup — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --bg: #f6f3ec;
+    --panel: #fffdf8;
+    --ink: #1e2a24;
+    --ink-soft: #52605a;
+    --river: #2b6777;
+    --river-deep: #1c4552;
+    --clay: #a8643f;
+    --moss: #3f6b4a;
+    --line: #ddd6c4;
+    --amber: #b8863a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:40px 24px 80px;}
+  header{margin-bottom:32px;}
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--river);
+    margin-bottom:10px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:clamp(28px,4vw,42px);
+    margin:0 0 12px;
+    color:var(--river-deep);
+    letter-spacing:-0.01em;
+  }
+  .sub{color:var(--ink-soft);font-size:16px;max-width:60ch;}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:24px;
+    margin-bottom:24px;
+  }
+  .panel h2{
+    font-family:'Fraunces', serif;
+    font-size:19px;
+    margin:0 0 4px;
+    color:var(--ink);
+  }
+  .panel .hint{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
+  form{display:flex;flex-wrap:wrap;gap:12px;align-items:end;}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px;}
+  label{font-size:13px;font-weight:500;color:var(--ink-soft);}
+  input, select{
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    background:#fff;
+    color:var(--ink);
+  }
+  input:focus, select:focus{outline:2px solid var(--river);outline-offset:1px;}
+  button{
+    padding:11px 20px;
+    background:var(--river);
+    color:#fff;
+    border:none;
+    border-radius:7px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  button:hover{background:var(--river-deep);}
+  button:disabled{background:#a9b3af;cursor:wait;}
+  .status{font-size:14px;color:var(--ink-soft);margin-top:14px;min-height:20px;}
+  .status.error{color:var(--clay);font-weight:500;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{
+    text-align:left;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    padding:10px 10px;
+    border-bottom:2px solid var(--line);
+  }
+  td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:hover td{background:#faf7ef;}
+  .senior{color:var(--moss);font-weight:600;}
+  .badge{
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    padding:2px 7px;
+    border-radius:5px;
+    background:#eef4f1;
+    color:var(--moss);
+  }
+  .empty{color:var(--ink-soft);font-size:14px;padding:20px 0;text-align:center;}
+  footer{
+    margin-top:40px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  footer a{color:var(--river);}
+  .source-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    background:#fff;
+    border:1px solid var(--line);
+    padding:6px 10px;
+    border-radius:6px;
+    display:inline-block;
+    margin-top:6px;
+  }
+  .cards-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    gap:16px;
+  }
+  .right-card{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px;
+    background:#fdfbf5;
+  }
+  .right-card h3{
+    font-family:'Fraunces', serif;
+    font-size:16px;
+    margin:0 0 4px;
+    color:var(--river-deep);
+  }
+  .right-card .wdid-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-bottom:14px;
+  }
+  .right-card dl{margin:0;}
+  .right-card .row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:7px 0;
+    border-bottom:1px dashed var(--line);
+    font-size:13.5px;
+  }
+  .right-card .row:last-of-type{border-bottom:none;}
+  .right-card .row dt{color:var(--ink-soft);}
+  .right-card .row dd{margin:0;text-align:right;font-weight:500;}
+  .seniority-note{
+    margin-top:12px;
+    padding:10px 12px;
+    border-radius:7px;
+    font-size:13px;
+    line-height:1.4;
+  }
+  .seniority-note.senior{background:#eef4f1;color:var(--moss);}
+  .seniority-note.moderate{background:#fbf3e4;color:var(--amber);}
+  .seniority-note.junior{background:#fbeee7;color:var(--clay);}
+  .seniority-note.unknown{background:#f1efe8;color:var(--ink-soft);}
+  #map{
+    height:320px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    margin-top:4px;
+  }
+  .map-hint{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:10px 0 0;
+  }
+  .distance-tag{
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--river-deep);
+    background:#eaf1f2;
+    padding:2px 8px;
+    border-radius:5px;
+    margin-bottom:10px;
+  }
+  .method-toggle{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .method-toggle button{
+    background:#fff;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    font-weight:500;
+    padding:8px 14px;
+  }
+  .method-toggle button.active{
+    background:var(--river);
+    color:#fff;
+    border-color:var(--river);
+  }
+  .method-panel{display:none;}
+  .method-panel.active{display:block;}
+  .coming-soon{
+    opacity:.6;
+  }
+  .coming-soon input{background:#f1efe8;cursor:not-allowed;}
+  .coming-soon-note{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:8px;
+    line-height:1.5;
+  }
+  .click-info{
+    margin-top:12px;
+    padding:12px 14px;
+    background:#fdfbf5;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:13px;
+  }
+  .click-info .ci-row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    padding:4px 0;
+  }
+  .click-info .ci-row dt{color:var(--ink-soft);}
+  .click-info .ci-row dd{margin:0;font-weight:500;text-align:right;}
+  .click-info .ci-row dd.muted{font-weight:400;color:var(--ink-soft);font-style:italic;}
+  .map-legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px 16px;
+    margin-top:10px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .map-legend span{display:flex; align-items:center; gap:5px;}
+  .map-legend i{
+    display:inline-block;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    border:1.5px solid #fff;
+    box-sizing:content-box;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Prototype · Live data · Colorado</div>
+    <h1>Colorado Water Rights Lookup</h1>
+    <p class="sub">Search real, live records from the Colorado Division of Water Resources. This pulls directly from the state's own database — nothing here is sample data.</p>
+  </header>
+
+  <div class="panel">
+    <h2>Find water rights near a property</h2>
+    <p class="hint">Search by address, tap a location on the map, or search by county directly.</p>
+
+    <div class="method-toggle">
+      <button type="button" class="method-btn active" data-method="address">Address</button>
+      <button type="button" class="method-btn" data-method="map">Tap the map</button>
+      <button type="button" class="method-btn" data-method="propid">Property ID</button>
+      <button type="button" class="method-btn" data-method="county">County</button>
+    </div>
+
+    <div class="method-panel active" id="method-address">
+      <form id="addressForm">
+        <div class="field" style="flex:2;">
+          <label for="addressInput">Street address</label>
+          <input type="text" id="addressInput" placeholder="e.g. 1305 S Foothills Hwy, Boulder">
+          <p class="map-hint" style="margin-top:8px;">Include the city — state is assumed to be Colorado.</p>
+        </div>
+        <button type="submit" id="addressBtn">Find</button>
+      </form>
+    </div>
+
+    <div class="method-panel" id="method-map">
+      <div id="map"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:8px;">
+        <p class="map-hint" style="margin:0;">Tap or click anywhere in Colorado. Works on phone too — a tap is treated the same as a click.</p>
+        <button type="button" id="locateBtn" style="background:#fff; color:var(--river); border:1px solid var(--river); padding:8px 14px; font-size:13px;">📍 Use my location</button>
+      </div>
+      <div class="map-legend">
+        <span><i style="background:#2b6777;"></i>Well</span>
+        <span><i style="background:#a8643f;"></i>Ditch/Canal</span>
+        <span><i style="background:#5b4b8a;"></i>Reservoir</span>
+        <span><i style="background:#4a90a4;"></i>Spring</span>
+        <span><i style="background:#8a8a7a;"></i>Other</span>
+        <span><i style="background:#2b6777; box-shadow:0 0 0 2px #e8871e;"></i>Gold ring = on this parcel</span>
+      </div>
+    </div>
+
+    <div class="method-panel coming-soon" id="method-propid">
+      <form>
+        <div class="field" style="flex:2;">
+          <label for="propIdInput">County parcel / Property ID</label>
+          <input type="text" id="propIdInput" placeholder="Coming soon" disabled>
+        </div>
+        <button type="button" disabled>Find</button>
+      </form>
+      <p class="coming-soon-note">Not available yet — Colorado's water rights records aren't linked to county parcel numbers. Each county runs its own parcel system, so this needs a separate integration per county. Use address or map search for now.</p>
+    </div>
+
+    <div class="method-panel" id="method-county">
+      <form id="searchForm">
+        <div class="field">
+          <label for="county">County</label>
+          <input type="text" id="county" placeholder="e.g. Boulder" value="Boulder">
+        </div>
+        <div class="field">
+          <label for="pageSize">Number of results</label>
+          <select id="pageSize">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <button type="submit" id="searchBtn">Search</button>
+      </form>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div class="click-info" id="clickInfo" style="display:none;"></div>
+  </div>
+
+  <div class="panel" id="cardsPanel" style="display:none;">
+    <h2>What this means, in plain terms</h2>
+    <p class="hint" id="cardsHint"></p>
+    <div id="cardsContainer"></div>
+  </div>
+
+  <div class="panel" id="resultsPanel" style="display:none;">
+    <h2>Raw record <span style="font-weight:400;color:var(--ink-soft);">— technical view</span></h2>
+    <p class="hint" id="resultsHint"></p>
+    <div style="overflow-x:auto;">
+      <table id="resultsTable">
+        <thead id="resultsHead"></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <p><strong>What this is:</strong> a working prototype pulling live from Colorado DWR's public REST API (the same system water attorneys and engineers use). Search by address or map click uses free U.S. Census geocoding to find the county, then pulls that county's water rights and sorts by distance from your point.</p>
+    <p><strong>What this isn't yet:</strong> a guarantee that the nearest listed right on the map actually belongs to, or serves, the property you searched — water rights are tied to a diversion structure (a ditch headgate, well, or reservoir), which is often not on the same parcel as the address you typed. "Nearby" is a starting point for investigation, not proof of ownership. This also isn't a well-yield estimate, a marketplace, or a valuation — those are still ahead.</p>
+    <div class="source-tag">Sources: dwr.state.co.us/Rest (Colorado DWR) · geocoding.geo.census.gov (U.S. Census Bureau, geocoding only) · OpenStreetMap (map tiles)</div>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const form = document.getElementById('searchForm');
+const addressForm = document.getElementById('addressForm');
+const addressInput = document.getElementById('addressInput');
+const addressBtn = document.getElementById('addressBtn');
+const statusEl = document.getElementById('status');
+const cardsPanel = document.getElementById('cardsPanel');
+const cardsHint = document.getElementById('cardsHint');
+const cardsContainer = document.getElementById('cardsContainer');
+const resultsPanel = document.getElementById('resultsPanel');
+const resultsHead = document.getElementById('resultsHead');
+const resultsBody = document.getElementById('resultsBody');
+const resultsHint = document.getElementById('resultsHint');
+const searchBtn = document.getElementById('searchBtn');
+
+// Colorado's 7 water divisions, by basin — purely geographic/administrative,
+// not an indicator of quality or value.
+const CO_DIVISIONS = {
+  1: 'South Platte basin',
+  2: 'Arkansas basin',
+  3: 'Rio Grande basin',
+  4: 'Gunnison basin',
+  5: 'Colorado River basin',
+  6: 'Yampa/White basin',
+  7: 'San Juan/Dolores basin'
+};
+
+function divisionLabel(div){
+  const num = parseInt(div, 10);
+  if(CO_DIVISIONS[num]) return `Division ${num} — ${CO_DIVISIONS[num]}`;
+  return `Division ${div}`;
+}
+
+// Colorado's "Decreed Units" field uses a single-letter code instead of
+// spelling out cfs/acre-feet. C = cfs (flow rate), A = acre-feet (volume).
+const UNIT_CODES = { 'C': 'cfs', 'A': 'acre-feet' };
+
+// Colorado's official beneficial-use code list (from DWR's own Net Amounts
+// data dictionary) — the "use" field returns these codes, not plain words.
+const USE_CODES = {
+  '0':'Storage', '1':'Irrigation', '2':'Municipal', '3':'Commercial',
+  '4':'Industrial', '5':'Recreation', '6':'Fishery', '7':'Fire protection',
+  '8':'Domestic', '9':'Stock watering', 'A':'Augmentation',
+  'B':'Sub-basin export', 'C':'Change of use return flow', 'E':'Evaporative',
+  'F':'Federal reserved', 'G':'Geothermal', 'H':'Household use only',
+  'K':'Snow making', 'M':'Minimum streamflow', 'P':'Power generation',
+  'Q':'Other', 'R':'Recharge', 'S':'Export from state',
+  'T':'Transmountain export', 'W':'Wildlife', 'X':'All beneficial uses'
+};
+
+function decodeUnit(code){
+  if(!code) return null;
+  const c = String(code).trim().toUpperCase();
+  return UNIT_CODES[c] || code;
+}
+
+function decodeUses(raw){
+  if(!raw) return null;
+  return String(raw).split(/[,\s]+/).filter(Boolean)
+    .map(code => USE_CODES[code.toUpperCase()] || code)
+    .join(', ');
+}
+// depends on crop, soil, irrigation method, and how often the right is
+// actually in priority). Ranges, not guarantees.
+function explainAmount(amount, unitHint){
+  const n = Number(amount);
+  if(!n || n <= 0) return null;
+  const unit = (unitHint || '').toLowerCase();
+
+  if(unit.includes('cfs') || (!unit && n < 50)){
+    const lowAcres = Math.round(n * 40);
+    const highAcres = Math.round(n * 80);
+    return `As a flow rate, this is enough — when the right is in priority — to irrigate roughly ${lowAcres}–${highAcres} acres of hay or pasture. This isn't a guaranteed year-round volume; it's the rate the owner can take when water is available and this right's priority is being honored.`;
+  }
+  if(unit.includes('af') || unit.includes('acre') || (!unit && n >= 50)){
+    const lowHomes = Math.round(n * 1);
+    const highHomes = Math.round(n * 2);
+    return `As a stored volume, this could supply roughly ${lowHomes}–${highHomes} single-family households for a year, depending on outdoor/irrigation use.`;
+  }
+  return null;
+}
+// This is the part that turns Colorado's internal field names into
+// something a landowner or buyer can actually read. It only speaks up
+// about a field when it's confident what that field means — if a value
+// doesn't match a known alias, it's simply left out of the card (it's
+// still visible in the raw technical table below).
+
+// How the water is actually delivered changes what it means for a property —
+// surface (ditch) rights depend on shared infrastructure and are often owned
+// as shares; well rights are pumped on-site but may carry extra legal
+// obligations (augmentation) if they're connected to a stream system.
+function deliveryNote(structureType){
+  if(!structureType) return null;
+  const t = structureType.toLowerCase();
+  if(t.includes('well')){
+    return { label: 'Well (groundwater)', note: 'Delivered by pumping on-site rather than shared infrastructure. If this well is "tributary" to a stream, it may require an augmentation plan — replacing water taken from the aquifer to protect downstream senior rights. Worth confirming before combining this with a physical yield estimate.' };
+  }
+  if(t.includes('ditch') || t.includes('canal')){
+    return { label: 'Ditch (surface water)', note: 'Delivered through shared ditch or canal infrastructure, often owned as shares in a mutual ditch company rather than directly. Reliability depends on both this right\'s priority date and the ditch company maintaining delivery.' };
+  }
+  if(t.includes('spring')){
+    return { label: 'Spring', note: 'A natural surface discharge point, administered like other surface water rights.' };
+  }
+  if(t.includes('reservoir') || t.includes('pond')){
+    return { label: 'Reservoir (storage)', note: 'Stored water, typically measured in acre-feet rather than a continuous flow rate.' };
+  }
+  if(t.includes('pipeline')){
+    return { label: 'Pipeline', note: 'Piped delivery — check the water source above to see whether the underlying right is surface or groundwater.' };
+  }
+  return { label: structureType, note: null };
+}
+
+function findVal(row, aliases){
+  for(const a of aliases){
+    if(row[a] !== undefined && row[a] !== null && row[a] !== '') return row[a];
+  }
+  return null;
+}
+
+function findByPattern(row, pattern){
+  for(const key of Object.keys(row)){
+    if(pattern.test(key) && row[key] !== undefined && row[key] !== null && row[key] !== ''){
+      return { key, value: row[key] };
+    }
+  }
+  return null;
+}
+
+function fmtDatePlain(val){
+  if(!val) return null;
+  const dt = new Date(val);
+  if(isNaN(dt) || dt.getFullYear() <= 1) return null;
+  return dt.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+}
+
+function seniorityBucket(apropriationDate){
+  if(!apropriationDate) return null;
+  const dt = new Date(apropriationDate);
+  if(isNaN(dt) || dt.getFullYear() <= 1) return null;
+  const year = dt.getFullYear();
+  if(year < 1900){
+    return { tier:'senior', label:'Senior right',
+      note:'Established before 1900. Senior rights are served first in a shortage — this is one of the more secure rights on its water source.' };
+  } else if(year < 1950){
+    return { tier:'moderate', label:'Moderately senior',
+      note:'Established in the early-to-mid 1900s. Reasonably secure, but a meaningful number of older rights on the same source would be served first in a dry year.' };
+  } else {
+    return { tier:'junior', label:'Junior right',
+      note:'Established after 1950. On a fully appropriated stream, junior rights like this are often the first curtailed in dry years.' };
+  }
+}
+
+// Experimental: query Colorado's statewide parcel service for whatever
+// parcel polygon contains this point. We don't yet know the exact field
+// names this service returns (undocumented publicly), so we display
+// whatever comes back rather than assuming — same approach that worked
+// for the DWR data earlier.
+async function queryParcelAtPoint(lat, lon){
+  try {
+    const url = `https://gis.colorado.gov/Public/rest/services/Address_and_Parcel/Colorado_Public_Parcels/MapServer/0/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&outSR=4326&f=json`;
+    const res = await fetch(url);
+    if(!res.ok) return { error: `Parcel service responded with status ${res.status}` };
+    const data = await res.json();
+    if(data.error) return { error: data.error.message || 'Parcel service returned an error.' };
+    const feature = data.features?.[0];
+    if(!feature) return { notFound: true };
+    return { attributes: feature.attributes, rings: feature.geometry?.rings || null };
+  } catch(err){
+    return { error: `Could not reach the parcel service: ${err.message}` };
+  }
+}
+
+// Standard ray-casting point-in-polygon test. Rings from Esri's format are
+// [[ [lon,lat], [lon,lat], ... ], ...] — outer boundary plus any holes.
+// Testing all rings' edges together in one pass correctly handles holes
+// without special-casing them.
+function pointInRings(lat, lon, rings){
+  if(!rings) return false;
+  let inside = false;
+  for(const ring of rings){
+    for(let i = 0, j = ring.length - 1; i < ring.length; j = i++){
+      const xi = ring[i][0], yi = ring[i][1];
+      const xj = ring[j][0], yj = ring[j][1];
+      const intersects = ((yi > lat) !== (yj > lat)) &&
+        (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+      if(intersects) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function renderParcelInfo(result){
+  if(!result) return '<p class="map-hint">Parcel lookup skipped.</p>';
+  if(result.error) return `<p class="map-hint" style="color:var(--clay);">Parcel lookup failed: ${result.error}</p>`;
+  if(result.notFound) return `<p class="map-hint">No parcel found at this exact point in Colorado's statewide dataset (coverage may be incomplete here).</p>`;
+
+  const attrs = result.attributes;
+  const rows = Object.entries(attrs)
+    .filter(([k, v]) => v !== null && v !== '' && !/objectid|shape/i.test(k))
+    .map(([k, v]) => `<div class="ci-row"><dt>${humanLabel(k)}</dt><dd>${autoLink(v)}</dd></div>`)
+    .join('');
+
+  // Diagnostic: confirms whether we actually got a usable boundary shape
+  // back, separate from the attributes. If this says "no boundary data,"
+  // the "no rights on this parcel" result isn't trustworthy — the on-parcel
+  // check couldn't run at all, so it's not a real answer either way.
+  let geomStatus;
+  if(result.rings && result.rings.length > 0){
+    const totalPoints = result.rings.reduce((sum, ring) => sum + ring.length, 0);
+    geomStatus = `<div class="ci-row"><dt>Boundary shape</dt><dd>Loaded (${result.rings.length} ring${result.rings.length===1?'':'s'}, ${totalPoints} points)</dd></div>`;
+  } else {
+    geomStatus = `<div class="ci-row"><dt>Boundary shape</dt><dd style="color:var(--clay);">Not returned — on-parcel matching could not run for this parcel</dd></div>`;
+  }
+
+  return `<dl>${rows}${geomStatus}</dl>`;
+}
+// Color-codes the marker by how the water is delivered (same structure
+// type field used for the "Delivery type" note on each card) — teal for
+// wells, clay for ditches/canals, purple for storage, gray for anything
+// else or unknown.
+function markerColorForType(structureType){
+  if(!structureType) return '#8a8a7a';
+  const t = structureType.toLowerCase();
+  if(t.includes('well')) return '#2b6777';
+  if(t.includes('ditch') || t.includes('canal')) return '#a8643f';
+  if(t.includes('spring')) return '#4a90a4';
+  if(t.includes('reservoir') || t.includes('pond')) return '#5b4b8a';
+  return '#8a8a7a';
+}
+
+function haversineMiles(lat1, lon1, lat2, lon2){
+  const R = 3958.8; // Earth radius in miles
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function rowLatLon(row){
+  const lat = findVal(row, ['latitude','lat','locationStructureLatitude','wellLatitude']);
+  const lon = findVal(row, ['longitude','lon','lng','locationStructureLongitude','wellLongitude']);
+  if(lat === null || lon === null) return null;
+  const latN = Number(lat), lonN = Number(lon);
+  if(isNaN(latN) || isNaN(lonN)) return null;
+  return { lat: latN, lon: lonN };
+}
+
+// Well construction/yield data lives in a completely separate Colorado
+// system from water rights (keyed by well permit number, not WDID), so
+// there's no guaranteed exact link between a specific water right and its
+// permit record. This finds the geographically nearest permit on file in
+// the same county as a best-effort match — real, but approximate, and
+// clearly labeled as such wherever it's shown.
+async function queryNearestWellPermit(county, lat, lon){
+  try {
+    const url = `https://dwr.state.co.us/Rest/GET/api/v2/wellpermits/wellpermit/?format=json&county=${encodeURIComponent(county.toUpperCase())}&pageSize=1000`;
+    const res = await fetch(url);
+    if(!res.ok) return { error: `Well permit service responded with status ${res.status}` };
+    const data = await res.json();
+    const rows = data.ResultList || [];
+    if(rows.length === 0) return { notFound: true };
+
+    let best = null, bestDist = Infinity;
+    for(const r of rows){
+      const loc = rowLatLon(r);
+      if(!loc) continue;
+      const d = haversineMiles(lat, lon, loc.lat, loc.lon);
+      if(d < bestDist){ bestDist = d; best = r; }
+    }
+    if(!best) return { notFound: true, noCoords: true };
+    return { row: best, distanceMiles: bestDist, totalOnFile: data.ResultCount ?? rows.length };
+  } catch(err){
+    return { error: `Could not reach the well permit service: ${err.message}` };
+  }
+}
+
+// NOTE (future work, needs a real backend): Colorado's older well permit
+// tool (WellPermitSearch/View.aspx?receipt=X) sometimes shows real
+// construction detail — depth, pump rate, static water level — as plain
+// text, for wells that reached "Well Constructed" status. We confirmed
+// this page exists and what it likely contains, but it can't be fetched
+// directly from a browser (no CORS support), so pulling this data in
+// requires a real server making the request instead of the browser. Until
+// then, the "View full well permit file" link above is the real path to
+// this information. When we do build the backend version: fetch
+// server-side, parse for Depth / Pump Rate / Static Water Level, cache
+// results (this page is slow and shouldn't be re-fetched on every view).
+
+function renderWellPermitInfo(result){
+  if(result.error) return `<p class="map-hint" style="color:var(--clay);">${result.error}</p>`;
+  if(result.notFound) return `<p class="map-hint">No well permit records found on file for this county${result.noCoords ? ' with usable location data' : ''}.</p>`;
+
+  const row = result.row;
+  const permitNo = findVal(row, ['permit','permitNumber','wellPermitNumber']);
+  const receiptNo = findVal(row, ['receipt','receiptNo']);
+  const status = findVal(row, ['permitCurrentStatusDescr','statusDescr','status']);
+  const aquifer = findVal(row, ['associatedAquifers','aquifer','aquiferName','completedAquifer']);
+  const use = findVal(row, ['associatedUses','use','useDescr']);
+  const locationType = findVal(row, ['locationType']);
+  // These would be genuinely valuable if present, but Colorado's bulk well
+  // permit feed doesn't reliably include them — actual construction detail
+  // (depth, tested yield, drilling date/method) lives in a scanned document
+  // attached to each individual permit, not as structured API data. Still
+  // checking, in case a particular record happens to have them.
+  const depth = findVal(row, ['totalDepth','total_depth','wellDepth','depthTotal','depthCompleted']);
+  const yieldVal = findVal(row, ['yield','yieldGpm','testYield','pumpingRate','estYield','yieldRate']);
+  const dateCompleted = findVal(row, ['dateCompleted','completionDate','date_completed','constructionDate']);
+  const drillMethod = findVal(row, ['drillingMethod','method','constructionMethod']);
+  const moreInfo = findVal(row, ['moreInformation']);
+
+  const known = [];
+  if(permitNo) known.push(['Well permit #', permitNo]);
+  if(status) known.push(['Permit status', status]);
+  if(locationType) known.push(['Location type', locationType]);
+  if(aquifer) known.push(['Associated aquifer', aquifer]);
+  if(use) known.push(['Associated use', use]);
+  if(depth) known.push(['Total depth', `${depth} ft`]);
+  if(yieldVal) known.push(['Tested yield', `${yieldVal} GPM`]);
+  const datePlain = fmtDatePlain(dateCompleted);
+  if(dateCompleted) known.push(['Date completed', datePlain || dateCompleted]);
+  if(drillMethod) known.push(['Drilling method', drillMethod]);
+
+  const knownHtml = known.map(([l,v]) => `<div class="ci-row"><dt>${l}</dt><dd>${v}</dd></div>`).join('');
+  const hasConstructionDetail = depth || yieldVal || dateCompleted || drillMethod;
+
+  // Always include a raw fallback — our field-name guesses above might miss
+  // (has happened before with Colorado's data), so nothing found stays
+  // hidden even if we didn't recognize every field.
+  const allFieldsHtml = Object.entries(row)
+    .filter(([k, v]) => v !== null && v !== '' && !/objectid/i.test(k))
+    .map(([k, v]) => `<div class="ci-row"><dt>${humanLabel(k)}</dt><dd>${autoLink(v)}</dd></div>`)
+    .join('');
+
+  return `
+    <p style="font-size:12px; color:var(--ink-soft); margin:10px 0 6px;">Nearest well permit on file — ${result.distanceMiles.toFixed(2)} mi from this structure's recorded point. This is a best-effort location match, not a guaranteed link to this exact well.</p>
+    ${moreInfo ? `
+      <a href="${moreInfo}" target="_blank" rel="noopener"
+        style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; margin:4px 0 10px;">
+        📄 View full well permit file (may include completion/yield report)
+      </a>
+    ` : ''}
+    ${known.length > 0 ? `<dl>${knownHtml}</dl>` : ''}
+    ${!hasConstructionDetail ? `<p style="font-size:12.5px; color:var(--ink-soft); margin:8px 0;">Depth, tested yield, and drilling date aren't in Colorado's bulk permit data — that's usually only in a scanned document on the permit file itself, linked above.</p>` : ''}
+    <details style="margin-top:8px;">
+      <summary style="cursor:pointer; font-size:12.5px; color:var(--river);">Show all fields on this permit record</summary>
+      <dl style="margin-top:8px;">${allFieldsHtml}</dl>
+    </details>
+  `;
+}
+
+function buildCard(row, targetPoint, onParcel, county){
+  const name = findVal(row, ['wrName','structureName','wr_name']) || 'Unnamed structure';
+  const wdid = findVal(row, ['wdid']);
+  const structureType = findVal(row, ['structureType','structure_type']);
+  const apropDate = findVal(row, ['apropriationDate','appropriationDate','apro_date']);
+  const adjDate = findVal(row, ['adjDate','adjudicationDate','adj_date']);
+  const waterSource = findVal(row, ['wdStreamName','streamName','waterSource','wd_stream_name']);
+  const division = findVal(row, ['div','division','wd']);
+  const use = findVal(row, ['use','useDescr','useDescription']);
+
+  const absAmt = findByPattern(row, /abs/i);
+  const condAmt = findByPattern(row, /cond/i);
+
+  const rows = [];
+  const delivery = deliveryNote(structureType);
+  if(delivery) rows.push(['Delivery type', delivery.label]);
+  if(waterSource) rows.push(['Water source', waterSource]);
+  const apropPlain = fmtDatePlain(apropDate);
+  if(apropPlain) rows.push(['Priority (appropriation) date', apropPlain]);
+  const adjPlain = fmtDatePlain(adjDate);
+  if(adjPlain) rows.push(['Confirmed by water court on', adjPlain]);
+  if(division !== null) rows.push(['Water division', divisionLabel(division)]);
+  const decodedUse = decodeUses(use);
+  if(decodedUse) rows.push(['Decreed use', decodedUse]);
+
+  const unitsInfo = findByPattern(row, /unit/i);
+  const decodedUnit = unitsInfo ? decodeUnit(unitsInfo.value) : null;
+
+  if(absAmt && Number(absAmt.value) > 0) rows.push(['Confirmed (absolute) amount', `${absAmt.value}${decodedUnit ? ' ' + decodedUnit : ''}`]);
+  if(condAmt && Number(condAmt.value) > 0) rows.push(['Conditional (not yet developed)', `${condAmt.value}${decodedUnit ? ' ' + decodedUnit : ''}`]);
+
+  const seniority = seniorityBucket(apropDate);
+  const amountExplainer = absAmt && Number(absAmt.value) > 0 ? explainAmount(absAmt.value, decodedUnit) : null;
+
+  let distanceTag = '';
+  if(onParcel){
+    distanceTag = `<div class="distance-tag" style="background:#eaf4ea; color:var(--moss); font-weight:600;">✓ On this parcel</div>`;
+  } else if(targetPoint){
+    const loc = rowLatLon(row);
+    if(loc){
+      const miles = haversineMiles(targetPoint.lat, targetPoint.lon, loc.lat, loc.lon);
+      distanceTag = `<div class="distance-tag">${miles < 0.1 ? 'At this location' : miles.toFixed(1) + ' mi away'}</div>`;
+    }
+  }
+
+  return `
+    <div class="right-card">
+      ${distanceTag}
+      <h3>${name}</h3>
+      ${wdid ? `<div class="wdid-tag">WDID ${wdid}</div>` : ''}
+      <dl>
+        ${rows.map(([label, val]) => `
+          <div class="row"><dt>${label}</dt><dd>${val}</dd></div>
+        `).join('')}
+      </dl>
+      ${seniority ? `<div class="seniority-note ${seniority.tier}"><strong>${seniority.label}.</strong> ${seniority.note}</div>` : ''}
+      ${delivery && delivery.note ? `<div class="seniority-note unknown">${delivery.note}</div>` : ''}
+      ${amountExplainer ? `<div class="seniority-note unknown">${amountExplainer}</div>` : ''}
+      ${(structureType && structureType.toLowerCase().includes('well') && rowLatLon(row) && county) ? `
+        <div class="well-details" id="well-details-${wdid || Math.random().toString(36).slice(2)}">
+          <button type="button" class="load-well-btn"
+            data-lat="${rowLatLon(row).lat}" data-lon="${rowLatLon(row).lon}" data-county="${county}"
+            data-target="well-details-${wdid || ''}"
+            style="background:#fff; color:var(--river); border:1px solid var(--river); padding:6px 12px; font-size:12.5px; margin-top:10px; border-radius:6px; cursor:pointer;">
+            📋 Load nearest well permit info
+          </button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+// ---------- end translation layer ----------
+
+// We don't fully trust our own guesses about Colorado's exact field names —
+// their schema is undocumented in places and inconsistent across endpoints.
+// So instead of hardcoding column names (which broke last time), we detect
+// whatever fields actually come back and just prioritize the useful-looking
+// ones first. This is more robust than a fixed guess.
+const PREFERRED_ORDER = [
+  'wrName','structureName','wr_name',
+  'wdid',
+  'adminNo','admin_no','adminNumber',
+  'apropriationDate','appropriationDate','apro_date',
+  'adjDate','adjudicationDate','adj_date',
+  'padjDate','priorAdjudicationDate','padj_date',
+  'wdStreamName','streamName','waterSource','wd_stream_name',
+  'div','division','wd',
+  'use','useDescr','useDescription',
+  'netAbs','netAmount','decreedUnits','units'
+];
+
+// Turns any value that looks like a URL into a real clickable link — used
+// everywhere we dump raw field data, so a "More Information" link (or any
+// other URL Colorado's data happens to include) is never just inert text.
+function autoLink(val){
+  const str = String(val);
+  if(/^https?:\/\//i.test(str)){
+    return `<a href="${str}" target="_blank" rel="noopener" style="color:var(--river);">${str}</a>`;
+  }
+  return str;
+}
+
+function humanLabel(key){
+  return key
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function looksLikeDate(key, val){
+  return /date/i.test(key) && typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val);
+}
+
+function fmtValue(key, val){
+  if(val === null || val === undefined || val === '') return '—';
+  if(looksLikeDate(key, val)){
+    const dt = new Date(val);
+    if(!isNaN(dt) && dt.getFullYear() > 1) {
+      return dt.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'});
+    }
+  }
+  return autoLink(val);
+}
+
+function pickColumns(rows){
+  // Union of all keys seen across the returned rows, so we don't miss a
+  // field that's only populated on some rows.
+  const allKeys = new Set();
+  rows.forEach(r => Object.keys(r).forEach(k => allKeys.add(k)));
+
+  const ordered = PREFERRED_ORDER.filter(k => allKeys.has(k));
+  const remaining = [...allKeys].filter(k => !ordered.includes(k));
+
+  // Cap total columns so the table stays readable — favor preferred fields,
+  // then fill remaining space with whatever else came back.
+  return [...ordered, ...remaining].slice(0, 9);
+}
+
+async function performSearch(county, pageSize, targetPoint, parcelRings){
+  statusEl.className = 'status';
+  statusEl.textContent = 'Querying Colorado DWR live database…';
+  resultsPanel.style.display = 'none';
+  cardsPanel.style.display = 'none';
+
+  const url = `https://dwr.state.co.us/Rest/GET/api/v2/waterrights/netamount/?format=json&county=${encodeURIComponent(county.toUpperCase())}&pageSize=${pageSize}`;
+
+  try {
+    const res = await fetch(url);
+    if(!res.ok){
+      throw new Error(`DWR responded with status ${res.status}`);
+    }
+    const data = await res.json();
+    let rows = data.ResultList || [];
+
+    if(rows.length === 0){
+      statusEl.textContent = `No records found for "${county}" County. Try a different address, a different spot on the map, or a well-known Colorado county like Boulder, Weld, or Larimer.`;
+      return;
+    }
+
+    // If we have a specific point (from an address or map click), sort by
+    // actual distance so the closest water rights show first, then keep
+    // only the nearest handful for display (we pulled a large batch just
+    // to make sure the true closest ones are in the set we sorted).
+    const fetchedCount = rows.length;
+    let onParcelRows = [];
+    if(targetPoint){
+      rows = rows.map(r => {
+        const loc = rowLatLon(r);
+        const dist = loc ? haversineMiles(targetPoint.lat, targetPoint.lon, loc.lat, loc.lon) : Infinity;
+        const onParcel = (parcelRings && loc) ? pointInRings(loc.lat, loc.lon, parcelRings) : false;
+        return { r, dist, onParcel };
+      }).sort((a,b) => a.dist - b.dist);
+
+      onParcelRows = rows.filter(x => x.onParcel).map(x => x.r);
+      rows = rows.filter(x => !x.onParcel).slice(0, 20).map(x => x.r);
+
+      // Plot the actual water rights on the map — green for on-parcel,
+      // teal for nearby — so this can be checked visually against the
+      // parcel outline and search pin, not just trusted as text.
+      if(leafletMap){
+        if(rightsMarkersLayer){ leafletMap.removeLayer(rightsMarkersLayer); rightsMarkersLayer = null; }
+        const group = L.layerGroup();
+
+        function addRightMarker(row, isOnParcel){
+          const loc = rowLatLon(row);
+          if(!loc) return;
+          const rName = findVal(row, ['wrName','structureName','wr_name']) || 'Unnamed structure';
+          const rWdid = findVal(row, ['wdid']) || '—';
+          const rType = findVal(row, ['structureType','structure_type']);
+          const typeLabel = deliveryNote(rType)?.label || rType || 'Unknown type';
+          const dist = haversineMiles(targetPoint.lat, targetPoint.lon, loc.lat, loc.lon);
+          L.circleMarker([loc.lat, loc.lon], {
+            radius: isOnParcel ? 9 : 7,
+            color: isOnParcel ? '#e8871e' : '#fff',
+            weight: isOnParcel ? 3 : 1.5,
+            fillColor: markerColorForType(rType),
+            fillOpacity: 0.9
+          })
+          .bindPopup(`<strong>${rName}</strong><br>WDID ${rWdid}<br>${typeLabel}<br>${isOnParcel ? '<strong>On this parcel</strong>' : dist.toFixed(1) + ' mi away'}`)
+          .addTo(group);
+        }
+
+        onParcelRows.forEach(r => addRightMarker(r, true));
+        rows.forEach(r => addRightMarker(r, false));
+
+        rightsMarkersLayer = group.addTo(leafletMap);
+      }
+    }
+
+    const totalOnFile = data.ResultCount ?? fetchedCount;
+    const truncated = targetPoint && totalOnFile > fetchedCount;
+
+    // Plain-language cards — on-parcel matches get their own headline
+    // section above the general nearby list.
+    let cardsHtml = '';
+    if(targetPoint && onParcelRows.length > 0){
+      cardsHtml += `<p style="font-weight:600; color:var(--moss); margin:0 0 12px;">✓ Found ${onParcelRows.length} water right${onParcelRows.length === 1 ? '' : 's'} directly on this parcel</p>`;
+      cardsHtml += `<div class="cards-grid" style="margin-bottom:24px;">${onParcelRows.map(r => buildCard(r, targetPoint, true, county)).join('')}</div>`;
+      if(rows.length > 0) cardsHtml += `<p style="font-weight:600; color:var(--ink-soft); margin:0 0 12px;">Other nearby water rights</p>`;
+    } else if(targetPoint){
+      cardsHtml += `<p style="color:var(--clay); margin:0 0 12px;">No water rights found directly on this parcel. This could mean the parcel genuinely has none on file, or that it's served by a right located elsewhere (like a ditch share) — see the nearby results below.</p>`;
+    }
+    cardsHtml += `<div class="cards-grid">${rows.map(r => buildCard(r, targetPoint, false, county)).join('')}</div>`;
+
+    cardsContainer.innerHTML = cardsHtml;
+    cardsHint.textContent = targetPoint
+      ? `Searched ${fetchedCount} of ${totalOnFile} water rights on file in ${county} County.${truncated ? ' Note: this county has more records than we pulled — results could be incomplete.' : ''}`
+      : `${rows.length} water right${rows.length === 1 ? '' : 's'} on file in ${county} County, translated from Colorado's raw records.`;
+    cardsPanel.style.display = 'block';
+
+    // Raw technical table
+    const columns = pickColumns(rows);
+    resultsHead.innerHTML = `<tr>${columns.map(c => `<th>${humanLabel(c)}</th>`).join('')}</tr>`;
+    resultsBody.innerHTML = rows.map(r => `
+      <tr>
+        ${columns.map(c => `<td>${fmtValue(c, r[c])}</td>`).join('')}
+      </tr>
+    `).join('');
+    resultsHint.textContent = `Showing ${rows.length} of ${data.ResultCount ?? rows.length} matching water rights on file in ${county} County. Columns shown are whatever fields Colorado's system actually returned for this query.`;
+    resultsPanel.style.display = 'block';
+
+    statusEl.textContent = `Done — pulled live from Colorado DWR (${county} County).`;
+
+  } catch(err){
+    statusEl.className = 'status error';
+    if(err.message.includes('Failed to fetch')){
+      statusEl.textContent = 'Could not reach the Colorado DWR server from this window (this can happen due to browser security rules on preview pages). The underlying API works — this just needs to run from a real hosted site rather than an in-chat preview.';
+    } else {
+      statusEl.textContent = `Something went wrong: ${err.message}`;
+    }
+  }
+}
+
+// ---------- County form (existing, direct) ----------
+async function runSearch(e){
+  e.preventDefault();
+  const county = document.getElementById('county').value.trim();
+  const pageSize = document.getElementById('pageSize').value;
+  if(!county){
+    statusEl.textContent = 'Enter a county name to search.';
+    statusEl.className = 'status error';
+    return;
+  }
+  searchBtn.disabled = true;
+  searchBtn.textContent = 'Searching…';
+  await performSearch(county, pageSize, null);
+  searchBtn.disabled = false;
+  searchBtn.textContent = 'Search';
+}
+form.addEventListener('submit', runSearch);
+
+// Event delegation for dynamically-generated buttons on the cards — well
+// permit lookup and the experimental construction-detail fetch.
+cardsContainer.addEventListener('click', async (e) => {
+  const wellBtn = e.target.closest('.load-well-btn');
+  if(wellBtn){
+    const { lat, lon, county, target } = wellBtn.dataset;
+    const targetDiv = document.getElementById(target);
+    if(!targetDiv) return;
+    wellBtn.disabled = true;
+    wellBtn.textContent = 'Loading…';
+    const result = await queryNearestWellPermit(county, parseFloat(lat), parseFloat(lon));
+    targetDiv.innerHTML = renderWellPermitInfo(result);
+    return;
+  }
+});
+
+// ---------- Geocoding (free, no API key — U.S. Census Bureau) ----------
+// Turns an address, or a lat/lon from a map click, into a Colorado county
+// (which is what Colorado's water rights system actually searches by) plus
+// the precise point, so results can be sorted by real distance.
+
+// The Census geocoder does not support CORS for direct browser fetch() calls
+// (confirmed in their own API docs) — it requires JSONP instead, which loads
+// a <script> tag rather than making an XHR/fetch request. This sidesteps
+// the browser's CORS restriction entirely.
+function jsonpRequest(baseUrl, params){
+  return new Promise((resolve, reject) => {
+    const cbName = 'jsonp_cb_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    let timeoutId;
+
+    window[cbName] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+
+    function cleanup(){
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      clearTimeout(timeoutId);
+    }
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('Could not reach the Census geocoding service — check your internet connection.'));
+    };
+
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Geocoding service timed out. Try again.'));
+    }, 20000);
+
+    const query = new URLSearchParams({ ...params, format: 'jsonp', callback: cbName }).toString();
+    script.src = `${baseUrl}?${query}`;
+    document.head.appendChild(script);
+  });
+}
+
+// Census returns county names like "Boulder County" — Colorado's DWR API
+// expects just "Boulder". Strip the suffix before querying DWR.
+function stripCountySuffix(name){
+  return name.replace(/\s+county$/i, '').trim();
+}
+
+async function geocodeAddress(address){
+  const data = await jsonpRequest('https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress', {
+    address,
+    benchmark: 'Public_AR_Current',
+    vintage: 'Current_Current'
+  });
+  const match = data?.result?.addressMatches?.[0];
+  if(!match) throw new Error('Could not find that address. Make sure to include the city (e.g. "1305 S Foothills Hwy, Boulder").');
+  const county = match.geographies?.Counties?.[0]?.NAME;
+  if(!county) throw new Error('Found the address, but could not determine its county.');
+  return {
+    lat: match.coordinates.y,
+    lon: match.coordinates.x,
+    county
+  };
+}
+
+// One automatic retry for a flaky external call — the free Census service
+// occasionally hiccups, and the whole search depends on this one step
+// succeeding (Colorado's water data can't be queried without a county), so
+// it's worth one silent second attempt before surfacing an error.
+async function withRetry(fn, retries = 1){
+  try {
+    return await fn();
+  } catch(err){
+    if(retries > 0) return withRetry(fn, retries - 1);
+    throw err;
+  }
+}
+
+async function reverseGeocodePoint(lat, lon){
+  const data = await jsonpRequest('https://geocoding.geo.census.gov/geocoder/geographies/coordinates', {
+    x: lon,
+    y: lat,
+    benchmark: 'Public_AR_Current',
+    vintage: 'Current_Current'
+  });
+  const county = data?.result?.geographies?.['Counties']?.[0]?.NAME;
+  if(!county) throw new Error('Could not determine the county for that point — it may be outside Colorado.');
+  return { lat, lon, county };
+}
+
+// Best-effort nearest address. Census does NOT offer coordinate-to-address
+// reverse lookup (their "coordinates" search only resolves to county/tract,
+// which is what reverseGeocodePoint above uses) — so this uses OpenStreetMap's
+// free Nominatim service instead, which does support it. Nominatim asks
+// for light usage (roughly 1 request/second) — fine for this prototype,
+// but a real product with real traffic should move to a paid geocoding
+// provider with a proper usage allowance.
+async function reverseGeocodeNearestAddress(lat, lon){
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(!data || data.error) return null;
+    return data.display_name || null;
+  } catch(err){
+    return null;
+  }
+}
+
+addressForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  let address = addressInput.value.trim();
+  if(!address){
+    statusEl.textContent = 'Enter an address to search.';
+    statusEl.className = 'status error';
+    return;
+  }
+  // This tool is Colorado-only, so if the person didn't type a state,
+  // assume Colorado rather than making them type it. City is still
+  // required — the geocoder can't reliably place a street name alone.
+  if(!/\b(colorado|,?\s*co)\b/i.test(address)){
+    address = `${address}, Colorado`;
+  }
+  addressBtn.disabled = true;
+  addressBtn.textContent = 'Locating…';
+  statusEl.className = 'status';
+  statusEl.textContent = 'Finding that address…';
+  try {
+    const { lat, lon, county } = await withRetry(() => geocodeAddress(address), 1);
+    const cleanCounty = stripCountySuffix(county);
+    await handlePointSelected(lat, lon, cleanCounty);
+  } catch(err){
+    statusEl.className = 'status error';
+    statusEl.textContent = err.message;
+  } finally {
+    addressBtn.disabled = false;
+    addressBtn.textContent = 'Find';
+  }
+});
+
+// ---------- Map click ----------
+let leafletMap = null;
+let clickMarker = null;
+let locationDot = null;
+let locationAccuracyCircle = null;
+let parcelPolygonLayer = null;
+let rightsMarkersLayer = null;
+
+async function handlePointSelected(lat, lng, knownCounty){
+  const clickInfo = document.getElementById('clickInfo');
+  clickInfo.style.display = 'block';
+  clickInfo.innerHTML = `
+    <dl>
+      <div class="ci-row"><dt>Coordinates</dt><dd>${lat.toFixed(5)}, ${lng.toFixed(5)}</dd></div>
+      <div class="ci-row"><dt>County</dt><dd class="muted">Looking up…</dd></div>
+      <div class="ci-row"><dt>Nearest address</dt><dd class="muted">Looking up…</dd></div>
+    </dl>
+    <p style="margin:12px 0 4px; font-weight:600; font-size:12.5px; color:var(--river-deep);">Parcel at this point</p>
+    <div id="parcelInfo"><p class="map-hint">Looking up…</p></div>
+  `;
+
+  statusEl.className = 'status';
+  statusEl.textContent = 'Finding the county and parcel for that spot…';
+
+  const addressPromise = reverseGeocodeNearestAddress(lat, lng);
+  const parcelPromise = queryParcelAtPoint(lat, lng);
+
+  const parcelResult = await parcelPromise;
+  const parcelDiv = document.getElementById('parcelInfo');
+  if(parcelDiv) parcelDiv.innerHTML = renderParcelInfo(parcelResult);
+  const parcelRings = parcelResult?.rings || null;
+
+  // Draw the real parcel boundary on the map so it can be visually checked
+  // against nearby water right locations, not just trusted as text. This
+  // works even if the map tab isn't the active one right now — initMap()
+  // is safe to call repeatedly, and the shape will already be in place
+  // and correctly framed the next time that tab is opened.
+  initMap();
+  if(parcelPolygonLayer){ leafletMap.removeLayer(parcelPolygonLayer); parcelPolygonLayer = null; }
+  if(parcelRings && parcelRings.length > 0){
+    const latlngs = parcelRings.map(ring => ring.map(([lonPt, latPt]) => [latPt, lonPt]));
+    parcelPolygonLayer = L.polygon(latlngs, {
+      color: '#2b6777',
+      weight: 2,
+      fillColor: '#2b6777',
+      fillOpacity: 0.12
+    }).addTo(leafletMap);
+    leafletMap.fitBounds(parcelPolygonLayer.getBounds(), { maxZoom: 17, padding: [20, 20] });
+  } else {
+    leafletMap.setView([lat, lng], 15);
+  }
+
+  if(clickMarker){ leafletMap.removeLayer(clickMarker); }
+  clickMarker = L.marker([lat, lng]).addTo(leafletMap)
+    .bindPopup(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+
+  try {
+    const county = knownCounty || stripCountySuffix((await withRetry(() => reverseGeocodePoint(lat, lng), 1)).county);
+    clickInfo.querySelector('.ci-row:nth-child(2) dd').textContent = county + ' County';
+    clickInfo.querySelector('.ci-row:nth-child(2) dd').classList.remove('muted');
+
+    statusEl.textContent = `That's in ${county} County — searching…`;
+    await performSearch(county, 1000, { lat, lon: lng }, parcelRings);
+  } catch(err){
+    statusEl.className = 'status error';
+    statusEl.textContent = err.message;
+    const countyDd = clickInfo.querySelector('.ci-row:nth-child(2) dd');
+    countyDd.textContent = 'Not found';
+    countyDd.classList.add('muted');
+  }
+
+  const nearestAddress = await addressPromise;
+  const addrDd = clickInfo.querySelector('.ci-row:nth-child(3) dd');
+  if(nearestAddress){
+    addrDd.textContent = nearestAddress;
+    addrDd.classList.remove('muted');
+  } else {
+    addrDd.textContent = 'No address found for this exact spot';
+    addrDd.classList.add('muted');
+  }
+}
+
+function initMap(){
+  if(leafletMap) return;
+  leafletMap = L.map('map').setView([39.0, -105.5], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 18
+  }).addTo(leafletMap);
+
+  leafletMap.on('click', (e) => {
+    const { lat, lng } = e.latlng;
+    if(clickMarker) leafletMap.removeLayer(clickMarker);
+    clickMarker = L.marker([lat, lng]).addTo(leafletMap)
+      .bindPopup(`${lat.toFixed(5)}, ${lng.toFixed(5)}`)
+      .openPopup();
+    handlePointSelected(lat, lng);
+  });
+}
+
+// "Use my location" — real GPS-dot behavior like Google/Apple Maps. This
+// only works on a secure (https://) site, or localhost during development —
+// browsers block geolocation entirely on a plain local file (file://) or
+// plain http://, as a privacy/security rule. That's not a bug in this code;
+// it won't work until this is actually hosted on a real domain.
+document.getElementById('locateBtn').addEventListener('click', () => {
+  document.querySelector('.method-btn[data-method="map"]').click();
+  initMap();
+
+  if(!navigator.geolocation){
+    statusEl.className = 'status error';
+    statusEl.textContent = 'This browser does not support location services.';
+    return;
+  }
+
+  if(!window.isSecureContext){
+    statusEl.className = 'status error';
+    statusEl.textContent = 'Location access needs a secure (https://) site — it won\'t work from a local file opened directly. This will work once the tool is hosted online.';
+    return;
+  }
+
+  statusEl.className = 'status';
+  statusEl.textContent = 'Getting your location…';
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+
+      if(locationDot) leafletMap.removeLayer(locationDot);
+      if(locationAccuracyCircle) leafletMap.removeLayer(locationAccuracyCircle);
+
+      // Accuracy halo, then a solid blue dot on top — the familiar
+      // "you are here" look from Google/Apple Maps.
+      locationAccuracyCircle = L.circle([latitude, longitude], {
+        radius: accuracy,
+        color: '#2b6777',
+        fillColor: '#2b6777',
+        fillOpacity: 0.12,
+        weight: 1
+      }).addTo(leafletMap);
+
+      locationDot = L.circleMarker([latitude, longitude], {
+        radius: 8,
+        color: '#fff',
+        weight: 2,
+        fillColor: '#2b6777',
+        fillOpacity: 1
+      }).addTo(leafletMap);
+
+      leafletMap.setView([latitude, longitude], 14);
+      handlePointSelected(latitude, longitude);
+    },
+    (err) => {
+      statusEl.className = 'status error';
+      if(err.code === err.PERMISSION_DENIED){
+        statusEl.textContent = 'Location access was denied. You can allow it in your browser settings, or just tap the map instead.';
+      } else {
+        statusEl.textContent = 'Could not get your location. Try tapping the map instead.';
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+// ---------- Tab switching ----------
+document.querySelectorAll('.method-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('method-' + btn.dataset.method).classList.add('active');
+    statusEl.textContent = '';
+    statusEl.className = 'status';
+
+    if(btn.dataset.method === 'map'){
+      initMap();
+      // Leaflet needs a nudge to size itself correctly if it was initialized
+      // while its container was hidden (display:none).
+      setTimeout(() => leafletMap && leafletMap.invalidateSize(), 100);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
