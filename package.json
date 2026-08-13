@@ -4,6 +4,9 @@
   "private": true,
   "description": "Backend for the western water rights lookup and marketplace project.",
   "main": "server/index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "node server/index.js",
     "test:well-scraper": "node server/services/colorado/wellCompletionScraper.test.js"

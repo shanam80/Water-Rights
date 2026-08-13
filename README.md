@@ -34,6 +34,22 @@ Search by address, tap the map, or (Colorado only) search by county.
 Everything on the page comes from the API endpoints below, which you can
 also call directly if you just want the raw data.
 
+## Deploying it (Render)
+
+This is set up to deploy on [Render](https://render.com) with no extra
+config: connect your GitHub repo, Render reads `render.yaml` automatically,
+and it runs `npm install` then `npm start`. No environment variables or
+secrets are needed — every data source this project talks to is a free
+public API, nothing requires a login or API key.
+
+The free tier sleeps after 15 minutes of no traffic and takes ~30 seconds
+to wake back up on the next visit — fine for early use, worth upgrading to
+the paid always-on tier ($7/mo as of writing) once this has real visitors.
+GPS "use my location" specifically needs this to be hosted somewhere with
+`https://` (a secure connection) — it won't work over plain `http://` or
+from a file opened locally, which is exactly the limitation noted in the
+original project briefing.
+
 ## The API, if you want the raw data directly
 
 All of it returns JSON (structured data, not a formatted page) — this is
