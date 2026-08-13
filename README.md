@@ -10,12 +10,12 @@ background — read that first if you're new here.
   government data sources on your behalf (something a browser alone can't
   always do — some of those sources block direct browser requests).
 - **`public/`** — the real frontend (`index.html` for Colorado, `idaho.html`
-  for Idaho). This is what you actually see and click around in — it's
-  served by the backend, so there's one server to run, not two.
+  for Idaho, `utah.html` for Utah). This is what you actually see and click
+  around in — it's served by the backend, so there's one server to run,
+  not two.
 - **`prototypes/`** — the three original single-file demos (Colorado, Idaho,
   Utah). Kept for reference and still open directly in a browser standalone.
-  Colorado's and Idaho's proven logic has since moved into `server/` +
-  `public/`; Utah is still only in its prototype file.
+  All three states' proven logic has since moved into `server/` + `public/`.
 - **`docs/`** — background reading, including the original project briefing.
 
 ## Running it
@@ -28,11 +28,11 @@ npm start
 ```
 
 Then open `http://localhost:3001` in a browser — that's the actual lookup
-tool. Colorado is the home page; Idaho is at `/idaho.html` (there's a link
-between them at the top of each page). Search by address, tap the map, or
-(Colorado only) search by county. Everything on the page comes from the API
-endpoints below, which you can also call directly if you just want the raw
-data.
+tool. Colorado is the home page; Idaho is at `/idaho.html`, Utah at
+`/utah.html` (there's a link between all three at the top of each page).
+Search by address, tap the map, or (Colorado only) search by county.
+Everything on the page comes from the API endpoints below, which you can
+also call directly if you just want the raw data.
 
 ## The API, if you want the raw data directly
 
@@ -127,6 +127,51 @@ http://localhost:3001/api/idaho/wells/nearby?lat=42.56&lon=-114.46
   service went dark, and the name is a real signal it could move again.
   Worth re-verifying if `server/services/idaho/waterRights.js` ever starts
   failing outright.
+
+## What it can do right now: Utah
+
+Utah's water-rights service turned out to be a custom (non-Esri) endpoint
+that only needed JSONP to work around a *browser's* CORS restriction — from
+a server there's no such restriction at all, so the backend just calls it
+directly and gets plain JSON back. Utah also turned out to have a genuine,
+previously-unverified well-logs dataset, confirmed live and cross-checked
+against a real water right (its `WIN` field links the two datasets
+together) — closing the "wells: not started" gap from the original
+briefing, including a scraper for real drilling depth/casing/water-level
+history, similar in spirit to Colorado's but a simpler page to parse.
+
+**Nearby water rights (points of diversion)**, sorted by distance:
+
+```
+http://localhost:3001/api/utah/water-rights?lat=40.76&lon=-111.89
+```
+
+**Nearby wells** — location, associated water right, whether a drilling log
+is on file:
+
+```
+http://localhost:3001/api/utah/wells/nearby?lat=40.76&lon=-111.89
+```
+
+**Drilling log detail for one well**, by its WIN (well identification
+number) — drilling method, depth, casing diameter, and water-level readings
+over time, when on file:
+
+```
+http://localhost:3001/api/utah/wells/434562/log
+```
+
+### Honest caveats for Utah
+
+- Place-of-use area matching (whether a right specifically serves a given
+  parcel) isn't implemented — Utah's WRPOD data is point-based (where each
+  right diverts water), like Colorado's, not polygon-based like Idaho's.
+- Parcel/ownership lookup hasn't been researched for Utah at all yet — this
+  is genuinely unstarted work, not a deliberate skip like Idaho's.
+- Not every well has a drilling log on file, and not every water right's
+  `WIN` field points to one (a `WIN` of `0` means none is linked) — the
+  frontend and API both say so plainly rather than showing an empty result
+  as if something went wrong.
 
 ## Verifying the scraper still works
 

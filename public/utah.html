@@ -3,23 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Idaho Water Rights Lookup</title>
+<title>Utah Water Rights Lookup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root{
-    --bg: #f5f4ef;
-    --panel: #fffdf8;
-    --ink: #1e2a24;
-    --ink-soft: #52605a;
-    --river: #2b6777;
-    --river-deep: #1c4552;
-    --clay: #a8643f;
-    --moss: #3f6b4a;
-    --line: #ddd6c4;
-    --amber: #b8863a;
-    --gem: #4a6fa5;
+    --bg: #f5f4ef; --panel: #fffdf8; --ink: #1e2a24; --ink-soft: #52605a;
+    --river: #2b6777; --river-deep: #1c4552; --clay: #a8643f; --moss: #3f6b4a;
+    --line: #ddd6c4; --amber: #b8863a;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter', sans-serif;line-height:1.5;}
@@ -38,8 +30,8 @@
   form{display:flex;flex-wrap:wrap;gap:12px;align-items:end;}
   .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px;}
   label{font-size:13px;font-weight:500;color:var(--ink-soft);}
-  input, select{padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Inter',sans-serif;font-size:14px;background:#fff;color:var(--ink);}
-  input:focus, select:focus{outline:2px solid var(--river);outline-offset:1px;}
+  input{padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Inter',sans-serif;font-size:14px;background:#fff;color:var(--ink);}
+  input:focus{outline:2px solid var(--river);outline-offset:1px;}
   button{padding:11px 20px;background:var(--river);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
   button:hover{background:var(--river-deep);}
   button:disabled{background:#a9b3af;cursor:wait;}
@@ -52,43 +44,35 @@
   .method-panel.active{display:block;}
   #map{height:340px;border-radius:8px;border:1px solid var(--line);margin-top:4px;}
   .map-hint{font-size:12.5px;color:var(--ink-soft);margin:10px 0 0;}
-  .map-legend{display:flex;flex-wrap:wrap;gap:12px 16px;margin-top:10px;font-size:12px;color:var(--ink-soft);}
-  .map-legend span{display:flex;align-items:center;gap:5px;}
-  .map-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;border:1.5px solid #fff;box-sizing:content-box;}
   .click-info{margin-top:12px;padding:12px 14px;background:#fdfbf5;border:1px solid var(--line);border-radius:8px;font-size:13px;}
-  .click-info .ci-row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;}
+  .click-info .ci-row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;flex-wrap:wrap;}
   .click-info .ci-row dt{color:var(--ink-soft);}
   .click-info .ci-row dd{margin:0;font-weight:500;text-align:right;word-break:break-word;overflow-wrap:break-word;min-width:0;}
-  .click-info .ci-row{flex-wrap:wrap;}
-  .click-info .ci-row dd.muted{font-weight:400;color:var(--ink-soft);font-style:italic;}
   .cards-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(270px, 1fr));gap:16px;}
   .right-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:#fdfbf5;}
   .right-card h3{font-family:'Fraunces', serif;font-size:16px;margin:0 0 4px;color:var(--river-deep);}
   .right-card .id-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin-bottom:14px;}
-  .right-card dl{margin:0;}
-  .right-card .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+  .right-card .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px;flex-wrap:wrap;}
   .right-card .row:last-of-type{border-bottom:none;}
   .right-card .row dt{color:var(--ink-soft);}
   .right-card .row dd{margin:0;text-align:right;font-weight:500;word-break:break-word;overflow-wrap:break-word;min-width:0;}
-  .right-card .row{flex-wrap:wrap;}
-  .note{margin-top:12px;padding:10px 12px;border-radius:7px;font-size:13px;line-height:1.4;}
-  .note.info{background:#eef4f1;color:var(--moss);}
-  .note.warn{background:#fbf3e4;color:var(--amber);}
-  .badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:5px;margin-bottom:10px;}
   .source-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:6px;display:inline-block;margin-top:6px;}
   footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
   footer a{color:var(--river);}
   details summary{cursor:pointer;font-size:12.5px;color:var(--river);}
+  table.log-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;}
+  table.log-table th{text-align:left;color:var(--ink-soft);font-weight:600;padding:5px 8px;border-bottom:1px solid var(--line);}
+  table.log-table td{padding:5px 8px;border-bottom:1px dashed var(--line);}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html" class="current">Idaho</a> · <a href="/utah.html">Utah</a></nav>
-    <div class="eyebrow">Live data · Idaho</div>
-    <h1>Idaho Water Rights Lookup</h1>
-    <p class="sub">Search real, live records from the Idaho Department of Water Resources, through this project's own backend. Idaho represents each water right as an actual place-of-use shape — not just a point — so this can show the real area a right covers, not just its approximate location.</p>
+    <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html">Idaho</a> · <a href="/utah.html" class="current">Utah</a></nav>
+    <div class="eyebrow">Live data · Utah</div>
+    <h1>Utah Water Rights Lookup</h1>
+    <p class="sub">Search real records from the Utah Division of Water Rights' Points of Diversion dataset (WRPOD) — the state's day-to-day operating database of where water rights actually divert water — through this project's own backend.</p>
   </header>
 
   <div class="panel">
@@ -104,8 +88,8 @@
       <form id="addressForm">
         <div class="field" style="flex:2;">
           <label for="addressInput">Street address</label>
-          <input type="text" id="addressInput" placeholder="e.g. 123 Main St, Boise">
-          <p class="map-hint" style="margin-top:8px;">Include the city — state is assumed to be Idaho.</p>
+          <input type="text" id="addressInput" placeholder="e.g. 200 E 300 S, Salt Lake City">
+          <p class="map-hint" style="margin-top:8px;">Include the city — state is assumed to be Utah.</p>
         </div>
         <button type="submit" id="addressBtn">Find</button>
       </form>
@@ -114,14 +98,8 @@
     <div class="method-panel" id="method-map">
       <div id="map"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:8px;">
-        <p class="map-hint" style="margin:0;">Tap or click anywhere in Idaho.</p>
+        <p class="map-hint" style="margin:0;">Tap or click anywhere in Utah.</p>
         <button type="button" id="locateBtn" style="background:#fff; color:var(--river); border:1px solid var(--river); padding:8px 14px; font-size:13px;">📍 Use my location</button>
-      </div>
-      <div class="map-legend">
-        <span><i style="background:#3f6b4a;"></i>Confirmed water right</span>
-        <span><i style="background:#4a6fa5;"></i>Active permit</span>
-        <span><i style="background:#a8643f;"></i>Adjudication claim</span>
-        <span style="color:var(--ink-soft);">(dashed outline = whole irrigation district, not a specific spot)</span>
       </div>
     </div>
 
@@ -130,9 +108,9 @@
   </div>
 
   <div class="panel" id="cardsPanel" style="display:none;">
-    <h2>What this means, in plain terms</h2>
+    <h2>Nearby water rights (points of diversion)</h2>
     <p class="hint" id="cardsHint"></p>
-    <div id="cardsContainer"></div>
+    <div id="cardsContainer" class="cards-grid"></div>
   </div>
 
   <div class="panel" id="wellsPanel" style="display:none;">
@@ -142,9 +120,9 @@
   </div>
 
   <footer>
-    <p><strong>What this is:</strong> live data from IDWR's public ArcGIS services — the same underlying data as IDWR's own Water Right Locator tool — pulled through this project's own backend. It checks whether your search point falls inside an actual water right's place-of-use area, across three different stages: confirmed water rights, active permits, and adjudication claims.</p>
-    <p><strong>What this isn't yet:</strong> a well-yield estimate or a marketplace — those are still ahead, same as Colorado. Also, a right's place-of-use shape being at your search point doesn't guarantee it's still active or unmodified — always confirm with IDWR directly before relying on this for a real decision. Parcel/ownership lookup isn't available for Idaho — there's no unified statewide public parcel API (each of its 44 counties runs its own system), so this is deliberately left out rather than half-built.</p>
-    <div class="source-tag">Sources: gis.idwr.idaho.gov (IDWR) · geocoding.geo.census.gov (U.S. Census, geocoding only) · OpenStreetMap (map tiles)</div>
+    <p><strong>What this is:</strong> live data pulled through this project's own backend from Utah's WRPOD (Water Rights Points of Diversion) dataset — the actual physical location each water right diverts water from, sorted by distance from your search point — plus Utah's well-log records (location, and for wells with a drilling log on file, real depth/casing/water-level detail).</p>
+    <p><strong>What this isn't yet:</strong> place-of-use area matching (whether a right specifically serves this parcel), parcel ownership, or a marketplace — those are still ahead, same as Colorado and Idaho. Parcel lookup for Utah hasn't been researched yet.</p>
+    <div class="source-tag">Sources: Utah Division of Water Rights (WRPOD, well logs) · geocoding.geo.census.gov (U.S. Census, geocoding only) · OpenStreetMap (map tiles)</div>
   </footer>
 
 </div>
@@ -174,7 +152,6 @@ function serverErrorMessage(err){
   return `Something went wrong: ${err.message}`;
 }
 
-// ---------- Presentation helpers ----------
 function humanLabel(key){
   return key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, c => c.toUpperCase());
 }
@@ -185,52 +162,36 @@ function autoLink(val){
   return str;
 }
 
-// Esri date fields often come through as raw epoch milliseconds even in
-// the "show all fields" raw view — format anything in a date-named field
-// that looks like one, so it's readable even in the technical section.
-function fmtRawValue(key, val){
-  if(/date/i.test(key) && typeof val === 'number' && Math.abs(val) > 1e11){
-    const dt = new Date(val);
-    const year = dt.getFullYear();
-    if(!isNaN(dt) && year > 1 && year < 9000){
-      return `${dt.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'})} <span style="color:var(--ink-soft); font-size:11px;">(${val})</span>`;
-    }
-  }
-  return autoLink(val);
-}
-
 function rawFieldsHtml(raw){
   return Object.entries(raw)
     .filter(([k, v]) => v !== null && v !== '' && !/objectid|shape/i.test(k))
-    .map(([k, v]) => `<div class="row"><dt>${humanLabel(k)}</dt><dd>${fmtRawValue(k, v)}</dd></div>`)
+    .map(([k, v]) => `<div class="row"><dt>${humanLabel(k)}</dt><dd>${autoLink(v)}</dd></div>`)
     .join('');
 }
 
-// ---------- Cards (translation already happened server-side — see
-// server/services/idaho/waterRights.js and wells.js — this just lays it
-// out) ----------
+// ---------- Water right card (translation already happened server-side —
+// see server/services/utah/waterRights.js — this just lays it out) ----------
 function buildWaterRightCard(right){
   const rows = [];
   if(right.status) rows.push(['Status', right.status]);
   if(right.priorityDate.plain) rows.push(['Priority date', right.priorityDate.plain]);
-  if(right.source) rows.push(['Water source', right.source + (right.tributaryOf ? ` (tributary of ${right.tributaryOf})` : '')]);
+  if(right.source) rows.push(['Water source', right.source]);
   if(right.use) rows.push(['Use', right.use]);
-  if(right.totalAcres) rows.push(['Irrigated acres', right.totalAcres]);
-  if(right.basis) rows.push(['Basis', right.basis]);
+  if(right.cfs && Number(right.cfs) > 0) rows.push(['Flow rate', `${right.cfs} cfs`]);
+  if(right.acreFeet && Number(right.acreFeet) > 0) rows.push(['Volume', `${right.acreFeet} acre-feet`]);
+  if(right.legalLocation) rows.push(['Legal location', right.legalLocation]);
 
   return `
     <div class="right-card">
-      <div class="badge" style="background:${right.layer.color}22; color:${right.layer.color};">${right.layer.label}</div>
-      <h3>${right.name}</h3>
-      ${right.wrNumber ? `<div class="id-tag">Water Right #${right.wrNumber}</div>` : ''}
+      <h3>${right.owner || 'Water right'}</h3>
+      <div class="id-tag">${right.wrNumber ? `WR# ${right.wrNumber} · ` : ''}${typeof right.distanceMiles === 'number' ? right.distanceMiles.toFixed(2) + ' mi away' : ''}</div>
       ${right.officialRecordUrl ? `
         <a href="${right.officialRecordUrl}" target="_blank" rel="noopener"
           style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; margin:4px 0 10px;">
-          📄 View official IDWR record
+          📄 View official record${right.wrNumber ? ` for WR# ${right.wrNumber}` : ''}
         </a>
       ` : ''}
-      ${right.isLargePOU ? `<div class="note warn"><strong>District-wide shape, not a specific parcel.</strong> This is marked as a "Large Place of Use" — the boundary shown covers this entire irrigation district's combined service area, not the specific piece of land you searched. Being inside this shape means you're somewhere in the district's territory, not that this exact right is confirmed for your parcel specifically.</div>` : ''}
-      <dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      ${rows.length > 0 ? `<dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : `<p class="map-hint">Couldn't confidently identify standard fields for this record — see raw data below.</p>`}
       <details style="margin-top:10px;">
         <summary>Show all fields on this record</summary>
         <dl style="margin-top:8px;">${rawFieldsHtml(right.raw)}</dl>
@@ -239,60 +200,96 @@ function buildWaterRightCard(right){
   `;
 }
 
-function buildWellCard(well){
-  const rows = [];
-  if(well.depth) rows.push(['Total depth', `${well.depth} ft`]);
-  if(well.staticWaterLevel) rows.push(['Static water level', `${well.staticWaterLevel} ft`]);
-  if(well.yield){
-    rows.push(['Reported yield', well.yield.value > 0
-      ? `${well.yield.value} ${well.yield.unit}`
-      : `Not on file (recorded as 0 — likely not measured, not necessarily a dry well)`]);
-  }
-  if(well.geology) rows.push(['Geology / formation', well.geology]);
-  if(well.owner) rows.push(['Owner on file', well.owner]);
-  if(well.wellUse) rows.push(['Well use', well.wellUse]);
-  if(well.address) rows.push(['Address on file', well.address]);
-  if(well.casingDepth) rows.push(['Casing depth', `${well.casingDepth} ft`]);
-  if(well.casingDiameter) rows.push(['Casing diameter', `${well.casingDiameter} in`]);
-  if(well.dateCompleted.plain) rows.push(['Date completed', well.dateCompleted.plain]);
-  else if(well.dateCompleted.raw) rows.push(['Date completed', 'Not on file']);
+// ---------- Well card ----------
+function recordsTable(rows){
+  if(!rows || rows.length === 0) return '';
+  const headers = Object.keys(rows[0]).filter(h => h !== '#' && h !== 'WIN');
+  return `
+    <table class="log-table">
+      <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr>${headers.map(h => `<td>${r[h] ?? '—'}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  `;
+}
 
+function renderWellLog(log){
+  if(log.error){
+    return `<p class="map-hint" style="color:var(--clay);">Could not load well log: ${log.error}</p>`;
+  }
+  let html = '';
+  if(log.scannedLogUrl){
+    html += `
+      <a href="${log.scannedLogUrl}" target="_blank" rel="noopener"
+        style="display:inline-block; background:var(--river); color:#fff; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; text-decoration:none; margin:6px 0;">
+        📄 View scanned well log
+      </a>`;
+  }
+  if(log.features){
+    const f = log.features;
+    html += `<dl>
+      ${f['Drilling Method'] ? `<div class="row"><dt>Drilling method</dt><dd>${f['Drilling Method']}</dd></div>` : ''}
+      ${f['Total Bore Depth'] ? `<div class="row"><dt>Total bore depth</dt><dd>${f['Total Bore Depth']} ft</dd></div>` : ''}
+      ${f['Finished Well Depth'] ? `<div class="row"><dt>Finished well depth</dt><dd>${f['Finished Well Depth']} ft</dd></div>` : ''}
+      ${f['Finished Casing Diameter'] ? `<div class="row"><dt>Casing diameter</dt><dd>${f['Finished Casing Diameter']} in</dd></div>` : ''}
+      ${f['Well Intake Depth'] ? `<div class="row"><dt>Well intake depth</dt><dd>${f['Well Intake Depth']} ft</dd></div>` : ''}
+    </dl>`;
+  } else {
+    html += `<p class="map-hint">No drilling-log construction detail on file for this well.</p>`;
+  }
+  if(log.waterLevelRecords.length > 0){
+    html += `<p style="font-size:12.5px; font-weight:600; color:var(--river-deep); margin:10px 0 0;">Water level readings over time</p>`;
+    html += recordsTable(log.waterLevelRecords);
+  }
+  return html;
+}
+
+function buildWellCard(well){
+  const cardId = 'well-log-' + well.win;
   return `
     <div class="right-card">
-      <h3>Well${well.wellId ? ` ${well.wellId}` : ''}</h3>
-      <div class="id-tag">${typeof well.distanceMiles === 'number' ? well.distanceMiles.toFixed(2) + ' mi away' : ''}</div>
-      ${rows.length > 0 ? `<dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : `<p class="map-hint">Couldn't confidently identify depth/yield/geology fields for this well — see raw record below.</p>`}
-      <details style="margin-top:10px;">
-        <summary>Show all fields on this record</summary>
-        <dl style="margin-top:8px;">${rawFieldsHtml(well.raw)}</dl>
-      </details>
+      <h3>Well ${well.win}</h3>
+      <div class="id-tag">${well.associatedWaterRight ? `WR# ${well.associatedWaterRight} · ` : ''}${typeof well.distanceMiles === 'number' ? well.distanceMiles.toFixed(2) + ' mi away' : ''}</div>
+      ${well.owner ? `<dl><div class="row"><dt>Owner on file</dt><dd>${well.owner}</dd></div>${well.legalLocation ? `<div class="row"><dt>Legal location</dt><dd>${well.legalLocation}</dd></div>` : ''}</dl>` : ''}
+      <div class="well-log-details" id="${cardId}">
+        <button type="button" class="load-log-btn"
+          data-win="${well.win}" data-target="${cardId}"
+          style="background:#fff; color:var(--river); border:1px solid var(--river); padding:6px 12px; font-size:12.5px; margin-top:8px; border-radius:6px; cursor:pointer;">
+          📋 Load drilling log detail
+        </button>
+      </div>
     </div>
   `;
 }
 
-function renderParcelInfo(){
-  return '<p class="map-hint">Parcel lookup isn\'t available for Idaho yet — there\'s no unified statewide public parcel API (each of its 44 counties runs its own system separately). Water rights and wells below still work normally.</p>';
-}
+wellsContainer.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.load-log-btn');
+  if(!btn) return;
+  const { win, target } = btn.dataset;
+  const targetDiv = document.getElementById(target);
+  if(!targetDiv) return;
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  try {
+    const res = await fetch(`/api/utah/wells/${encodeURIComponent(win)}/log`);
+    const data = await res.json();
+    targetDiv.innerHTML = renderWellLog(res.ok ? data : { error: data.error || `Server responded with status ${res.status}` });
+  } catch(err){
+    targetDiv.innerHTML = renderWellLog({ error: serverErrorMessage(err) });
+  }
+});
 
 // ---------- Map ----------
 let leafletMap = null;
 let clickMarker = null;
-let rightsPolygonLayers = [];
+let rightsMarkersLayer = null;
 
 function initMap(){
   if(leafletMap) return;
-  leafletMap = L.map('map').setView([44.0, -114.7], 6);
+  leafletMap = L.map('map').setView([39.3, -111.7], 7);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
   }).addTo(leafletMap);
-  leafletMap.on('click', (e) => {
-    const { lat, lng } = e.latlng;
-    handlePointSelected(lat, lng);
-  });
-}
-
-function ringsToLatLngs(rings){
-  return rings.map(ring => ring.map(([lonPt, latPt]) => [latPt, lonPt]));
+  leafletMap.on('click', (e) => handlePointSelected(e.latlng.lat, e.latlng.lng));
 }
 
 // ---------- Main search flow ----------
@@ -304,94 +301,65 @@ async function handlePointSelected(lat, lng){
 
   const clickInfo = document.getElementById('clickInfo');
   clickInfo.style.display = 'block';
-  clickInfo.innerHTML = `
-    <dl><div class="ci-row"><dt>Coordinates</dt><dd>${lat.toFixed(5)}, ${lng.toFixed(5)}</dd></div></dl>
-    <p style="margin:12px 0 4px; font-weight:600; font-size:12.5px; color:var(--river-deep);">Parcel at this point</p>
-    <div id="parcelInfo">${renderParcelInfo()}</div>
-  `;
+  clickInfo.innerHTML = `<dl><div class="ci-row"><dt>Coordinates</dt><dd>${lat.toFixed(5)}, ${lng.toFixed(5)}</dd></div></dl>`;
 
-  setStatus('Searching Idaho water rights…');
+  setStatus('Searching Utah water rights…');
   cardsPanel.style.display = 'none';
-  rightsPolygonLayers.forEach(l => leafletMap.removeLayer(l));
-  rightsPolygonLayers = [];
+  wellsPanel.style.display = 'none';
+  if(rightsMarkersLayer){ leafletMap.removeLayer(rightsMarkersLayer); rightsMarkersLayer = null; }
 
-  let data;
   try {
-    const res = await fetch(`/api/idaho/water-rights?lat=${lat}&lon=${lng}`);
-    data = await res.json();
+    const res = await fetch(`/api/utah/water-rights?lat=${lat}&lon=${lng}`);
+    const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
-  } catch(err){
-    cardsContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">Could not set up the water rights search: ${serverErrorMessage(err)}</p>`;
-    cardsHint.textContent = 'Search failed.';
+
+    if(data.rights.length === 0){
+      cardsContainer.innerHTML = `<p class="map-hint">No water rights points of diversion on file within about ${data.searchRadiusMiles} miles of this point — a genuine result, not a sign of a broken connection.</p>`;
+      cardsHint.textContent = '';
+    } else {
+      cardsContainer.innerHTML = data.rights.map(buildWaterRightCard).join('');
+      cardsHint.textContent = `Closest ${data.rights.length} water right(s) on file within roughly ${data.searchRadiusMiles} miles, nearest first.`;
+
+      const group = L.layerGroup();
+      data.rights.forEach(r => {
+        if(r.location){
+          L.circleMarker([r.location.lat, r.location.lon], {
+            radius: 7, color: '#fff', weight: 1.5, fillColor: '#2b6777', fillOpacity: 0.9
+          }).bindPopup(`<strong>${r.owner || 'Water right'}</strong><br>${r.wrNumber ? `WR# ${r.wrNumber}<br>` : ''}${r.status ? `Status: ${r.status}<br>` : ''}${typeof r.distanceMiles === 'number' ? r.distanceMiles.toFixed(2) + ' mi away' : ''}`).addTo(group);
+        }
+      });
+      rightsMarkersLayer = group.addTo(leafletMap);
+    }
     cardsPanel.style.display = 'block';
-    setStatus('Water rights lookup failed — see details above.', true);
+  } catch(err){
+    cardsContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">${serverErrorMessage(err)}</p>`;
+    cardsHint.textContent = 'Search failed — see note above.';
+    cardsPanel.style.display = 'block';
+    setStatus('Search failed.', true);
     return;
   }
-
-  const { rights, layerErrors } = data;
-  let cardsHtml = '';
-
-  layerErrors.forEach(le => {
-    cardsHtml += `<p class="map-hint" style="color:var(--clay);">${le.layer} lookup failed: ${le.error}</p>`;
-  });
-
-  // District-wide ("Large POU") shapes are often the same massive boundary
-  // repeated once per water right recorded within it — drawing each one
-  // stacks up into solid, misleading color. Draw the district outline once
-  // for context (no fill), and reserve filled shapes for specific,
-  // individual places of use.
-  const districtOutlinesDrawn = new Set();
-  rights.forEach(right => {
-    if(!right.geometry?.rings) return;
-    if(right.isLargePOU){
-      if(!districtOutlinesDrawn.has(right.layer.id)){
-        const outline = L.polygon(ringsToLatLngs(right.geometry.rings), {
-          color: right.layer.color, weight: 1.5, fillOpacity: 0, dashArray: '6, 6'
-        }).addTo(leafletMap);
-        rightsPolygonLayers.push(outline);
-        districtOutlinesDrawn.add(right.layer.id);
-      }
-      return;
-    }
-    const poly = L.polygon(ringsToLatLngs(right.geometry.rings), {
-      color: right.layer.color, weight: 2, fillColor: right.layer.color, fillOpacity: 0.3
-    }).addTo(leafletMap);
-    rightsPolygonLayers.push(poly);
-  });
-
-  if(rights.length === 0 && layerErrors.length === 0){
-    cardsHtml = `<p class="map-hint">No water right, permit, or claim place-of-use area covers this exact point. This could mean there genuinely isn't one here, or that this property is served by a right located elsewhere (like a shared canal system) — worth checking IDWR directly.</p>`;
-  } else if(rights.length > 0){
-    cardsHtml += `<div class="cards-grid">${rights.map(buildWaterRightCard).join('')}</div>`;
-  }
-
-  cardsContainer.innerHTML = cardsHtml;
-  cardsHint.textContent = rights.length > 0
-    ? `Found ${rights.length} water right record(s) whose place-of-use area covers this exact point.`
-    : 'Search results for this location.';
-  cardsPanel.style.display = 'block';
 
   // Wells — separate from water rights, runs independently
   wellsContainer.innerHTML = '<p class="map-hint">Searching nearby wells…</p>';
   wellsPanel.style.display = 'block';
   try {
-    const wellsRes = await fetch(`/api/idaho/wells/nearby?lat=${lat}&lon=${lng}`);
-    const wellsData = await wellsRes.json();
-    if(!wellsRes.ok) throw new Error(wellsData.error || `Server responded with status ${wellsRes.status}`);
+    const res = await fetch(`/api/utah/wells/nearby?lat=${lat}&lon=${lng}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
 
-    if(wellsData.wells.length === 0){
-      wellsContainer.innerHTML = `<p class="map-hint">No wells on file within about ${wellsData.searchRadiusMiles} miles of this point.</p>`;
+    if(data.wells.length === 0){
+      wellsContainer.innerHTML = `<p class="map-hint">No wells on file within about ${data.searchRadiusMiles} miles of this point.</p>`;
       wellsHint.textContent = '';
     } else {
-      wellsContainer.innerHTML = wellsData.wells.map(buildWellCard).join('');
-      wellsHint.textContent = `Closest ${wellsData.wells.length} well(s) on file within roughly ${wellsData.searchRadiusMiles} miles, nearest first.`;
+      wellsContainer.innerHTML = data.wells.map(buildWellCard).join('');
+      wellsHint.textContent = `Closest ${data.wells.length} well(s) on file within roughly ${data.searchRadiusMiles} miles, nearest first. Tap "Load drilling log detail" on any well for depth, casing, and water-level history where a log is on file.`;
     }
   } catch(err){
     wellsContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">Wells lookup failed: ${serverErrorMessage(err)}</p>`;
     wellsHint.textContent = '';
   }
 
-  setStatus(layerErrors.length > 0 ? 'Done, with some errors above — see details.' : 'Done — pulled live from IDWR.');
+  setStatus('Done — pulled live from Utah Division of Water Rights.');
 }
 
 // ---------- Geocoding (JSONP — Census doesn't support direct CORS fetch)
@@ -432,7 +400,7 @@ addressForm.addEventListener('submit', async (e) => {
     setStatus('Enter an address to search.', true);
     return;
   }
-  if(!/\b(idaho|,?\s*id)\b/i.test(address)) address = `${address}, Idaho`;
+  if(!/\b(utah|,?\s*ut)\b/i.test(address)) address = `${address}, Utah`;
 
   addressBtn.disabled = true;
   addressBtn.textContent = 'Locating…';
