@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water Rights Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #f5f4ef; --panel: #fffdf8; --ink: #1e2a24; --ink-soft: #52605a;
+    --river: #2b6777; --river-deep: #1c4552; --clay: #a8643f; --moss: #3f6b4a;
+    --line: #ddd6c4; --amber: #b8863a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter', sans-serif;line-height:1.5;}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 80px;}
+  header{margin-bottom:32px;}
+  .state-nav{font-family:'JetBrains Mono', monospace; font-size:12px; margin-bottom:14px;}
+  .state-nav a{color:var(--ink-soft); text-decoration:none; padding:4px 8px; border-radius:5px;}
+  .state-nav a.current{color:var(--river); font-weight:600; background:#eaf1f2;}
+  .state-nav a:hover{text-decoration:underline;}
+  .eyebrow{font-family:'JetBrains Mono', monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--river);margin-bottom:10px;}
+  h1{font-family:'Fraunces', serif;font-weight:700;font-size:clamp(28px,4vw,42px);margin:0 0 12px;color:var(--river-deep);letter-spacing:-0.01em;}
+  .sub{color:var(--ink-soft);font-size:16px;max-width:62ch;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:24px;}
+  .panel h2{font-family:'Fraunces', serif;font-size:19px;margin:0 0 4px;color:var(--ink);}
+  .panel .hint{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
+  form{display:flex;flex-wrap:wrap;gap:12px;align-items:end;}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px;}
+  .field.full{flex-basis:100%;}
+  label{font-size:13px;font-weight:500;color:var(--ink-soft);}
+  input, select, textarea{padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Inter',sans-serif;font-size:14px;background:#fff;color:var(--ink);}
+  textarea{resize:vertical;min-height:80px;}
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--river);outline-offset:1px;}
+  button{padding:11px 20px;background:var(--river);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+  button:hover{background:var(--river-deep);}
+  button:disabled{background:#a9b3af;cursor:wait;}
+  button.secondary{background:#fff;color:var(--river);border:1px solid var(--river);}
+  button.danger{background:#fff;color:var(--clay);border:1px solid var(--clay);}
+  .status{font-size:14px;color:var(--ink-soft);margin-top:14px;min-height:20px;}
+  .status.error{color:var(--clay);font-weight:500;}
+  .status.success{color:var(--moss);font-weight:500;}
+  .method-toggle{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .method-toggle button{background:#fff;color:var(--ink-soft);border:1px solid var(--line);font-weight:500;padding:8px 14px;}
+  .method-toggle button.active{background:var(--river);color:#fff;border-color:var(--river);}
+  .method-panel{display:none;}
+  .method-panel.active{display:block;}
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(270px, 1fr));gap:16px;}
+  .right-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:#fdfbf5;cursor:pointer;}
+  .right-card:hover{border-color:var(--river);}
+  .right-card h3{font-family:'Fraunces', serif;font-size:16px;margin:0 0 4px;color:var(--river-deep);}
+  .right-card .id-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin-bottom:10px;}
+  .right-card .price{font-size:17px;font-weight:700;color:var(--moss);margin-bottom:8px;}
+  .right-card .desc{font-size:13.5px;color:var(--ink-soft);}
+  .badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:5px;background:#eaf1f2;color:var(--river);margin-bottom:8px;}
+  .badge.sold{background:#fbeee7;color:var(--clay);}
+  .save-link-box{background:#fbf3e4;border:1px solid var(--amber);border-radius:8px;padding:16px;margin-top:14px;}
+  .save-link-box strong{color:var(--amber);}
+  .manage-link{display:block;word-break:break-all;font-family:'JetBrains Mono',monospace;font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:8px;color:var(--river);}
+  .inquiry-item{border-bottom:1px dashed var(--line);padding:12px 0;font-size:13.5px;}
+  .inquiry-item:last-child{border-bottom:none;}
+  .inquiry-item .meta{color:var(--ink-soft);font-size:12px;margin-bottom:4px;}
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
+  footer a{color:var(--river);}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(30,42,36,0.5);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .modal-backdrop.hidden{display:none;}
+  .modal{background:var(--panel);border-radius:10px;padding:24px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;}
+  .modal h3{font-family:'Fraunces', serif;margin:0 0 4px;color:var(--river-deep);}
+  .modal .close-btn{float:right;background:none;color:var(--ink-soft);padding:4px 8px;font-size:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/marketplace.html" class="current">Marketplace</a></nav>
+    <div class="eyebrow">Marketplace · v1</div>
+    <h1>Water Rights Marketplace</h1>
+    <p class="sub">Browse water rights for sale, or list your own. This connects buyers and sellers directly — there's no checkout or payment handling here, since transferring a water right requires the same legal/state review process it always has. Think "contact the seller," not "add to cart."</p>
+  </header>
+
+  <div class="panel" id="mainPanel">
+    <div class="method-toggle">
+      <button type="button" class="method-btn active" data-method="browse">Browse listings</button>
+      <button type="button" class="method-btn" data-method="list">List a right</button>
+    </div>
+
+    <div class="method-panel active" id="method-browse">
+      <form id="filterForm" style="margin-bottom:20px;">
+        <div class="field">
+          <label for="filterState">State</label>
+          <select id="filterState">
+            <option value="">All states</option>
+            <option value="CO">Colorado</option>
+            <option value="ID">Idaho</option>
+            <option value="UT">Utah</option>
+          </select>
+        </div>
+        <button type="submit">Filter</button>
+      </form>
+      <div id="listingsStatus" class="status"></div>
+      <div id="listingsContainer" class="cards-grid"></div>
+    </div>
+
+    <div class="method-panel" id="method-list">
+      <p class="hint">Fill this out to list a water right. There's no account/login — after submitting, you'll get a private link to manage or remove your listing later. <strong>Save that link</strong>; it's the only way back in.</p>
+      <form id="createForm">
+        <div class="field">
+          <label for="createState">State *</label>
+          <select id="createState" required>
+            <option value="CO">Colorado</option>
+            <option value="ID">Idaho</option>
+            <option value="UT">Utah</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="createRightType">Right type</label>
+          <select id="createRightType">
+            <option value="">Unspecified</option>
+            <option value="well">Well</option>
+            <option value="ditch">Ditch / canal</option>
+            <option value="reservoir">Reservoir / storage</option>
+            <option value="spring">Spring</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="createRightIdentifier">Right ID (WDID / WR#, if known)</label>
+          <input type="text" id="createRightIdentifier" placeholder="e.g. 0100500 or 57-10395">
+        </div>
+        <div class="field full">
+          <label for="createTitle">Title *</label>
+          <input type="text" id="createTitle" required placeholder="e.g. 23 cfs senior irrigation right on South Platte River">
+        </div>
+        <div class="field full">
+          <label for="createDescription">Description</label>
+          <textarea id="createDescription" placeholder="Priority date, current use, what's included, why you're selling, etc."></textarea>
+        </div>
+        <div class="field">
+          <label for="createCounty">County</label>
+          <input type="text" id="createCounty" placeholder="e.g. Weld">
+        </div>
+        <div class="field">
+          <label for="createPrice">Asking price (USD)</label>
+          <input type="number" id="createPrice" min="0" step="1" placeholder="Leave blank for \"contact for price\"">
+        </div>
+        <div class="field">
+          <label for="createPriceNote">Price note</label>
+          <input type="text" id="createPriceNote" placeholder="e.g. negotiable, per acre-foot">
+        </div>
+        <div class="field">
+          <label for="createContactName">Your name *</label>
+          <input type="text" id="createContactName" required>
+        </div>
+        <div class="field">
+          <label for="createContactEmail">Your email *</label>
+          <input type="email" id="createContactEmail" required>
+        </div>
+        <button type="submit" id="createBtn">List this right</button>
+      </form>
+      <div id="createStatus" class="status"></div>
+      <div id="saveLinkBox" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="managePanel" style="display:none;">
+    <h2>Manage your listing</h2>
+    <div id="manageContent"></div>
+  </div>
+
+  <footer>
+    <p><strong>What this is:</strong> a listing board connecting water right owners and buyers directly. Submitting a listing requires no account — you get a private management link instead. Contacting a seller (inquiries) is public and doesn't require anything from the buyer beyond a name, email, and message.</p>
+    <p><strong>What this isn't:</strong> a place where money or ownership actually changes hands. Water rights require formal state review to transfer — this is a starting point for that conversation, not a substitute for it. Always confirm a right's actual status directly with the relevant state (linked from each state's lookup page) before relying on anything here.</p>
+  </footer>
+
+</div>
+
+<div class="modal-backdrop hidden" id="detailModalBackdrop">
+  <div class="modal" id="detailModal"></div>
+</div>
+
+<script>
+const STATE_LABELS = { CO: 'Colorado', ID: 'Idaho', UT: 'Utah' };
+
+function fmtPrice(listing){
+  if(listing.askingPriceUsd === null || listing.askingPriceUsd === undefined) return 'Contact for price';
+  const formatted = Number(listing.askingPriceUsd).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  return listing.priceNote ? `${formatted} (${listing.priceNote})` : formatted;
+}
+
+function fmtDate(iso){
+  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function serverErrorMessage(err){
+  if(err instanceof TypeError && /fetch/i.test(err.message)){
+    return "Could not reach this project's own backend server. Make sure it's running and this page was loaded from it.";
+  }
+  return `Something went wrong: ${err.message}`;
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll('.method-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('method-' + btn.dataset.method).classList.add('active');
+  });
+});
+
+// ---------- Browse ----------
+const listingsStatus = document.getElementById('listingsStatus');
+const listingsContainer = document.getElementById('listingsContainer');
+
+function buildListingCard(listing){
+  const div = document.createElement('div');
+  div.className = 'right-card';
+  div.innerHTML = `
+    ${listing.status === 'sold' ? '<div class="badge sold">Sold</div>' : ''}
+    <h3>${listing.title}</h3>
+    <div class="id-tag">${STATE_LABELS[listing.state] || listing.state}${listing.county ? ` · ${listing.county} County` : ''}${listing.rightIdentifier ? ` · ${listing.rightIdentifier}` : ''}</div>
+    <div class="price">${fmtPrice(listing)}</div>
+    <div class="desc">${(listing.description || '').slice(0, 140)}${(listing.description || '').length > 140 ? '…' : ''}</div>
+  `;
+  div.addEventListener('click', () => openDetailModal(listing));
+  return div;
+}
+
+async function loadListings(){
+  listingsStatus.className = 'status';
+  listingsStatus.textContent = 'Loading listings…';
+  listingsContainer.innerHTML = '';
+  const state = document.getElementById('filterState').value;
+  const params = new URLSearchParams();
+  if(state) params.set('state', state);
+
+  try {
+    const res = await fetch(`/api/marketplace/listings?${params.toString()}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+
+    if(data.listings.length === 0){
+      listingsStatus.textContent = 'No listings yet' + (state ? ` for ${STATE_LABELS[state]}` : '') + '. Be the first — use the "List a right" tab.';
+      return;
+    }
+    listingsStatus.textContent = `${data.listings.length} listing${data.listings.length === 1 ? '' : 's'}.`;
+    data.listings.forEach(l => listingsContainer.appendChild(buildListingCard(l)));
+  } catch(err){
+    listingsStatus.className = 'status error';
+    listingsStatus.textContent = serverErrorMessage(err);
+  }
+}
+
+document.getElementById('filterForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  loadListings();
+});
+
+// ---------- Detail modal + inquiry form ----------
+const detailModalBackdrop = document.getElementById('detailModalBackdrop');
+const detailModal = document.getElementById('detailModal');
+
+function openDetailModal(listing){
+  detailModal.innerHTML = `
+    <button type="button" class="close-btn" id="closeModalBtn">&times;</button>
+    ${listing.status === 'sold' ? '<div class="badge sold">Sold</div>' : ''}
+    <h3>${listing.title}</h3>
+    <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
+      ${STATE_LABELS[listing.state] || listing.state}${listing.county ? ` · ${listing.county} County` : ''}${listing.rightIdentifier ? ` · ${listing.rightType ? listing.rightType + ' ' : ''}#${listing.rightIdentifier}` : ''}
+      · Listed ${fmtDate(listing.createdAt)}
+    </p>
+    <p style="font-size:18px; font-weight:700; color:var(--moss);">${fmtPrice(listing)}</p>
+    <p style="white-space:pre-wrap;">${listing.description || 'No further description provided.'}</p>
+    <hr style="border:none; border-top:1px solid var(--line); margin:16px 0;">
+    <h4 style="margin:0 0 10px;">Contact ${listing.contactName || 'the seller'}</h4>
+    <form id="inquiryForm">
+      <div class="field full"><label>Your name</label><input type="text" id="inqName" required></div>
+      <div class="field full"><label>Your email</label><input type="email" id="inqEmail" required></div>
+      <div class="field full"><label>Message</label><textarea id="inqMessage" required placeholder="Ask about availability, priority date, price flexibility, etc."></textarea></div>
+      <button type="submit" id="inqSubmitBtn">Send inquiry</button>
+    </form>
+    <div id="inqStatus" class="status"></div>
+  `;
+  detailModalBackdrop.classList.remove('hidden');
+  document.getElementById('closeModalBtn').addEventListener('click', closeDetailModal);
+
+  document.getElementById('inquiryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('inqSubmitBtn');
+    const status = document.getElementById('inqStatus');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch(`/api/marketplace/listings/${listing.id}/inquiries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyerName: document.getElementById('inqName').value.trim(),
+          buyerEmail: document.getElementById('inqEmail').value.trim(),
+          message: document.getElementById('inqMessage').value.trim(),
+        }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+      status.className = 'status success';
+      status.textContent = 'Sent. The seller will see your message and can reach out to you directly.';
+      document.getElementById('inquiryForm').reset();
+    } catch(err){
+      status.className = 'status error';
+      status.textContent = serverErrorMessage(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send inquiry';
+    }
+  });
+}
+
+function closeDetailModal(){
+  detailModalBackdrop.classList.add('hidden');
+}
+detailModalBackdrop.addEventListener('click', (e) => {
+  if(e.target === detailModalBackdrop) closeDetailModal();
+});
+
+// ---------- Create listing ----------
+document.getElementById('createForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('createBtn');
+  const status = document.getElementById('createStatus');
+  const saveLinkBox = document.getElementById('saveLinkBox');
+  btn.disabled = true;
+  btn.textContent = 'Listing…';
+  status.className = 'status';
+  status.textContent = '';
+
+  const priceVal = document.getElementById('createPrice').value;
+  const body = {
+    state: document.getElementById('createState').value,
+    rightType: document.getElementById('createRightType').value || undefined,
+    rightIdentifier: document.getElementById('createRightIdentifier').value.trim() || undefined,
+    title: document.getElementById('createTitle').value.trim(),
+    description: document.getElementById('createDescription').value.trim() || undefined,
+    county: document.getElementById('createCounty').value.trim() || undefined,
+    askingPriceUsd: priceVal ? Number(priceVal) : undefined,
+    priceNote: document.getElementById('createPriceNote').value.trim() || undefined,
+    contactName: document.getElementById('createContactName').value.trim(),
+    contactEmail: document.getElementById('createContactEmail').value.trim(),
+  };
+
+  try {
+    const res = await fetch('/api/marketplace/listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+
+    status.className = 'status success';
+    status.textContent = 'Listed! Your listing is now live on the Browse tab.';
+    document.getElementById('createForm').reset();
+
+    const manageUrl = `${location.origin}/marketplace.html?manage=${data.listing.id}&token=${data.editToken}`;
+    saveLinkBox.style.display = 'block';
+    saveLinkBox.innerHTML = `
+      <div class="save-link-box">
+        <strong>⚠️ Save this link now — it's the only way to edit or remove this listing later.</strong>
+        <p style="margin:8px 0 0; font-size:13px;">There's no login for this, so if you lose this link, we can't recover access for you.</p>
+        <a class="manage-link" href="${manageUrl}">${manageUrl}</a>
+      </div>
+    `;
+  } catch(err){
+    status.className = 'status error';
+    status.textContent = serverErrorMessage(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'List this right';
+  }
+});
+
+// ---------- Manage view (?manage=<id>&token=<token>) ----------
+async function initManageView(){
+  const params = new URLSearchParams(location.search);
+  const listingId = params.get('manage');
+  const token = params.get('token');
+  if(!listingId || !token) return;
+
+  document.getElementById('mainPanel').style.display = 'none';
+  const managePanel = document.getElementById('managePanel');
+  const manageContent = document.getElementById('manageContent');
+  managePanel.style.display = 'block';
+  manageContent.innerHTML = '<p class="status">Loading…</p>';
+
+  try {
+    const res = await fetch(`/api/marketplace/listings/${listingId}/manage?token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+    renderManageView(data.listing, data.inquiries, token);
+  } catch(err){
+    manageContent.innerHTML = `<p class="status error">${serverErrorMessage(err)}</p>`;
+  }
+}
+
+function renderManageView(listing, inquiries, token){
+  const manageContent = document.getElementById('manageContent');
+  manageContent.innerHTML = `
+    ${listing.status === 'sold' ? '<div class="badge sold">Sold</div>' : `<div class="badge">${listing.status}</div>`}
+    <h3 style="margin:4px 0;">${listing.title}</h3>
+    <p style="color:var(--ink-soft); font-size:13px;">${STATE_LABELS[listing.state] || listing.state}${listing.county ? ` · ${listing.county} County` : ''} · Contact on file: ${listing.contactEmail}</p>
+    <p style="font-size:17px; font-weight:700; color:var(--moss);">${fmtPrice(listing)}</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin:12px 0;">
+      <button type="button" class="secondary" id="markSoldBtn" ${listing.status === 'sold' ? 'disabled' : ''}>Mark as sold</button>
+      <button type="button" class="secondary" id="markActiveBtn" ${listing.status === 'active' ? 'disabled' : ''}>Mark as active</button>
+      <button type="button" class="danger" id="removeBtn" ${listing.status === 'removed' ? 'disabled' : ''}>Remove listing</button>
+    </div>
+    <div id="manageActionStatus" class="status"></div>
+    <h4 style="margin:20px 0 6px;">Inquiries (${inquiries.length})</h4>
+    ${inquiries.length === 0
+      ? '<p class="hint">No inquiries yet.</p>'
+      : inquiries.map(i => `
+        <div class="inquiry-item">
+          <div class="meta">${i.buyerName} · ${i.buyerEmail} · ${fmtDate(i.createdAt)}</div>
+          <div>${i.message}</div>
+          <a href="mailto:${i.buyerEmail}?subject=${encodeURIComponent('Re: ' + listing.title)}" style="font-size:12.5px; color:var(--river);">Reply by email &rarr;</a>
+        </div>
+      `).join('')}
+  `;
+
+  async function setStatus(newStatus){
+    const actionStatus = document.getElementById('manageActionStatus');
+    actionStatus.textContent = 'Updating…';
+    actionStatus.className = 'status';
+    try {
+      const res = await fetch(`/api/marketplace/listings/${listing.id}?token=${encodeURIComponent(token)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+      renderManageView(data.listing, inquiries, token);
+    } catch(err){
+      actionStatus.className = 'status error';
+      actionStatus.textContent = serverErrorMessage(err);
+    }
+  }
+
+  document.getElementById('markSoldBtn').addEventListener('click', () => setStatus('sold'));
+  document.getElementById('markActiveBtn').addEventListener('click', () => setStatus('active'));
+  document.getElementById('removeBtn').addEventListener('click', () => {
+    if(confirm('Remove this listing? It will no longer show up in Browse.')) setStatus('removed');
+  });
+}
+
+// ---------- Init ----------
+if(new URLSearchParams(location.search).has('manage')){
+  initManageView();
+} else {
+  loadListings();
+}
+</script>
+
+</body>
+</html>

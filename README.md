@@ -10,9 +10,9 @@ background — read that first if you're new here.
   government data sources on your behalf (something a browser alone can't
   always do — some of those sources block direct browser requests).
 - **`public/`** — the real frontend (`index.html` for Colorado, `idaho.html`
-  for Idaho, `utah.html` for Utah). This is what you actually see and click
-  around in — it's served by the backend, so there's one server to run,
-  not two.
+  for Idaho, `utah.html` for Utah, `marketplace.html` for the marketplace).
+  This is what you actually see and click around in — it's served by the
+  backend, so there's one server to run, not two.
 - **`prototypes/`** — the three original single-file demos (Colorado, Idaho,
   Utah). Kept for reference and still open directly in a browser standalone.
   All three states' proven logic has since moved into `server/` + `public/`.
@@ -20,27 +20,47 @@ background — read that first if you're new here.
 
 ## Running it
 
-You'll need [Node.js](https://nodejs.org) installed (any recent version).
+You'll need [Node.js](https://nodejs.org) installed (any recent version)
+and a Postgres database — the marketplace feature needs somewhere to store
+listings (the state lookup pages don't; they work with zero setup).
+[Neon](https://neon.tech) has a free tier with no time limit and is what
+this project is built/tested against.
 
 ```bash
 npm install
+cp .env.example .env   # then edit .env and paste in your DATABASE_URL
+npm run migrate        # creates the marketplace tables (safe to re-run)
 npm start
 ```
 
 Then open `http://localhost:3001` in a browser — that's the actual lookup
 tool. Colorado is the home page; Idaho is at `/idaho.html`, Utah at
-`/utah.html` (there's a link between all three at the top of each page).
-Search by address, tap the map, or (Colorado only) search by county.
-Everything on the page comes from the API endpoints below, which you can
-also call directly if you just want the raw data.
+`/utah.html`, the marketplace at `/marketplace.html` (there's a link
+between all four at the top of each page). Search by address, tap the map,
+or (Colorado only) search by county. Everything on the page comes from the
+API endpoints below, which you can also call directly if you just want the
+raw data.
+
+Everything except the marketplace works with no `.env` file at all — if
+you only care about the state lookup tools, `npm install && npm start` is
+enough on its own.
 
 ## Deploying it (Render)
 
-This is set up to deploy on [Render](https://render.com) with no extra
-config: connect your GitHub repo, Render reads `render.yaml` automatically,
-and it runs `npm install` then `npm start`. No environment variables or
-secrets are needed — every data source this project talks to is a free
-public API, nothing requires a login or API key.
+This is set up to deploy on [Render](https://render.com): connect your
+GitHub repo, Render reads `render.yaml` automatically, and it runs
+`npm install && npm run migrate` then `npm start` — the migration re-runs
+on every deploy, which is safe (it only creates tables that don't already
+exist) and means the database schema never drifts out of sync with the
+deployed code.
+
+`render.yaml` declares `DATABASE_URL`, `RESEND_API_KEY`, and `EMAIL_FROM`
+as variables Render will prompt you to fill in during setup (via
+`sync: false` — their values live only in Render's dashboard, never in
+this repo). `DATABASE_URL` is required for the marketplace to work;
+`RESEND_API_KEY`/`EMAIL_FROM` are optional (see the marketplace section
+below). Every other data source this project talks to is a free public
+API needing no login or key.
 
 The free tier sleeps after 15 minutes of no traffic and takes ~30 seconds
 to wake back up on the next visit — fine for early use, worth upgrading to
@@ -188,6 +208,42 @@ http://localhost:3001/api/utah/wells/434562/log
   `WIN` field points to one (a `WIN` of `0` means none is linked) — the
   frontend and API both say so plainly rather than showing an empty result
   as if something went wrong.
+
+## The marketplace
+
+The differentiator from the original project vision: owners list a water
+right, buyers browse and send an inquiry. Deliberately **not** a checkout —
+water rights require formal state review to actually transfer ownership, so
+"transact" here means connecting buyer and seller directly, the same way it
+already happens today (title companies, water attorneys, direct
+negotiation), not a payment flow this app processes itself.
+
+**No user accounts.** Creating a listing (`POST /api/marketplace/listings`)
+returns an `editToken` shown exactly once — that token, not a login, is
+what proves you own a listing later (editing it, marking it sold, reading
+its inquiries). The frontend surfaces this as a "save this link" URL like
+`/marketplace.html?manage=<id>&token=<token>`. Simpler than building real
+auth for v1, at a real cost: **lose the link, lose access** — nothing on
+the backend can recover it for you. Worth becoming real accounts once this
+has enough users that link-loss becomes a real support burden.
+
+**Email notifications are optional, and degrade gracefully.** Without
+`RESEND_API_KEY` set, an inquiry is still saved and fully visible via the
+seller's manage link — the app just skips emailing them about it (logs a
+line saying so, doesn't error). Set `RESEND_API_KEY` (a free account at
+[resend.com](https://resend.com)) and optionally `EMAIL_FROM` to turn
+emailing on with no code changes.
+
+Key endpoints (see `server/routes/marketplace.js` for the full set):
+
+```
+POST /api/marketplace/listings                    create a listing
+GET  /api/marketplace/listings?state=&minPrice=    browse/filter
+GET  /api/marketplace/listings/:id                 one listing (public — no contact email)
+GET  /api/marketplace/listings/:id/manage?token=   owner view (contact email + inquiries)
+PATCH /api/marketplace/listings/:id?token=         edit, or change status (active/sold/removed)
+POST /api/marketplace/listings/:id/inquiries       buyer contacts seller
+```
 
 ## Verifying the scraper still works
 

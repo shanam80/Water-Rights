@@ -9,10 +9,13 @@
   },
   "scripts": {
     "start": "node server/index.js",
+    "migrate": "node server/db/migrate.js",
     "test:well-scraper": "node server/services/colorado/wellCompletionScraper.test.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
-    "express": "^4.19.2"
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "pg": "^8.13.1"
   }
 }

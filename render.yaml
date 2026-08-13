@@ -3,6 +3,18 @@ services:
     name: western-water-rights
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run migrate
     startCommand: npm start
     healthCheckPath: /api/health
+    envVars:
+      # sync: false means Render prompts you to paste the real value into
+      # its dashboard instead of storing it in this file — secrets never
+      # belong in the repo.
+      - key: DATABASE_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: PUBLIC_BASE_URL
+        value: https://western-water-rights.onrender.com
