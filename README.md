@@ -9,16 +9,14 @@ background — read that first if you're new here.
 - **`server/`** — the backend. A small Node.js program that talks to state
   government data sources on your behalf (something a browser alone can't
   always do — some of those sources block direct browser requests).
+- **`public/`** — the real frontend (`index.html`). This is what you actually
+  see and click around in — it's served by the backend, so there's one
+  server to run, not two.
 - **`prototypes/`** — the three original single-file demos (Colorado, Idaho,
-  Utah). Each still opens directly in a browser and works standalone. Their
-  proven logic (confirmed URLs, field names) is gradually being moved into
-  `server/` as real backend features.
+  Utah). Kept for reference and still open directly in a browser standalone.
+  Colorado's proven logic has since moved into `server/` + `public/`; Idaho
+  and Utah are still only in their prototype files.
 - **`docs/`** — background reading, including the original project briefing.
-
-There's no frontend yet — Colorado's proven data logic (water rights,
-parcels/ownership, on-parcel matching, well construction data) has now been
-migrated into the backend as real API endpoints. Idaho and Utah are still
-only in their standalone prototype files.
 
 ## Running it
 
@@ -29,14 +27,15 @@ npm install
 npm start
 ```
 
-The server starts at `http://localhost:3001`. Visiting that address in a
-browser should show `{"status":"ok", ...}`.
+Then open `http://localhost:3001` in a browser — that's the actual lookup
+tool: search by address, tap the map, or search by county. Everything on
+the page comes from the API endpoints below, which you can also call
+directly if you just want the raw data.
 
-## What it can do right now: Colorado
+## The API, if you want the raw data directly
 
-All of it returns JSON (structured data, not a formatted page yet) — this is
-the backend building block, not the finished consumer-facing lookup tool.
-That comes next, once a frontend is built to call these.
+All of it returns JSON (structured data, not a formatted page) — this is
+what the frontend at `public/index.html` calls under the hood.
 
 **Water rights, for a whole county:**
 
