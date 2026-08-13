@@ -3,6 +3,7 @@
 // worked fine client-side, but it's moved here too so the server can pair a
 // bulk record with its scraped detail page in one response.
 const { fetchWithTimeout } = require('../../lib/http');
+const { haversineMiles } = require('../../lib/geo');
 
 const BULK_URL = 'https://dwr.state.co.us/Rest/GET/api/v2/wellpermits/wellpermit/';
 
@@ -14,17 +15,6 @@ async function fetchWellPermitsByCounty(county) {
   }
   const data = await res.json();
   return data.ResultList || [];
-}
-
-function haversineMiles(lat1, lon1, lat2, lon2) {
-  const R = 3958.8; // Earth radius in miles
-  const toRad = (d) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 // Well construction data is keyed by permit/receipt number, not by water

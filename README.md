@@ -15,8 +15,10 @@ background — read that first if you're new here.
   `server/` as real backend features.
 - **`docs/`** — background reading, including the original project briefing.
 
-There's no frontend yet — this first step is the backend piece that the
-browser alone couldn't do: Colorado's well construction data.
+There's no frontend yet — Colorado's proven data logic (water rights,
+parcels/ownership, on-parcel matching, well construction data) has now been
+migrated into the backend as real API endpoints. Idaho and Utah are still
+only in their standalone prototype files.
 
 ## Running it
 
@@ -30,33 +32,48 @@ npm start
 The server starts at `http://localhost:3001`. Visiting that address in a
 browser should show `{"status":"ok", ...}`.
 
-## What it can do right now: Colorado well-completion lookup
+## What it can do right now: Colorado
 
-Colorado's official well records website shows real construction details —
-how deep a well is, when it was drilled, its tested water yield — but that
-information lives on a page that a browser isn't allowed to read directly
-(a technical restriction called CORS). A backend server doesn't have that
-restriction, which is exactly why this project needed one.
+All of it returns JSON (structured data, not a formatted page yet) — this is
+the backend building block, not the finished consumer-facing lookup tool.
+That comes next, once a frontend is built to call these.
 
-Two things you can ask it for, by visiting the URL in a browser or using a
-tool like `curl`:
+**Water rights, for a whole county:**
 
-**1. Look up one well's construction details, if you know its receipt number:**
+```
+http://localhost:3001/api/colorado/water-rights?county=WELD
+```
+
+**Water rights near a specific point** — adds a parcel/ownership lookup at
+that point, splits results into "on this parcel" vs. "nearby," and sorts
+nearby ones by actual distance:
+
+```
+http://localhost:3001/api/colorado/water-rights?county=WELD&lat=40.2276&lon=-104.3365
+```
+
+**Parcel/ownership lookup alone, at a point** (owner name/address, acreage,
+land use, plus the parcel's boundary shape):
+
+```
+http://localhost:3001/api/colorado/parcel?lat=40.2276&lon=-104.3365
+```
+
+**Well construction details, if you know the receipt number** — depth, when
+it was drilled, tested water yield. This is the piece that specifically
+needed a real backend: the page it comes from blocks direct browser
+requests (CORS), so a browser-only tool can't reach it, but a server can:
 
 ```
 http://localhost:3001/api/colorado/well-completion/0002158
 ```
 
-**2. Find the nearest well permit to a map point, county, and get its construction details automatically:**
+**Nearest well permit to a map point + county**, with construction details
+automatically attached:
 
 ```
 http://localhost:3001/api/colorado/wells/nearest?county=WELD&lat=40.2276&lon=-104.3365
 ```
-
-Both return the underlying government data as JSON (structured data, not a
-formatted page) — this is a backend building block, not the finished
-consumer-facing lookup tool yet. That comes next, once more pieces are in
-place.
 
 ### A couple of honest caveats, carried over from the prototype
 
@@ -67,6 +84,10 @@ place.
   known; static water level and tested yield are frequently blank,
   especially for older permits. When present, the response says so plainly
   rather than showing a misleading blank as zero.
+- A water right "on this parcel" is a real point-in-polygon match against
+  the parcel's actual boundary, but it's still not a guarantee the right
+  serves that property — a right tied to a ditch headgate elsewhere, for
+  instance, can genuinely belong to a parcel it doesn't sit on.
 
 ## Verifying the scraper still works
 
