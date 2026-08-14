@@ -34,3 +34,14 @@ CREATE TABLE IF NOT EXISTS inquiries (
 );
 
 CREATE INDEX IF NOT EXISTS idx_inquiries_listing_id ON inquiries (listing_id);
+
+-- General site contact — not tied to any listing. Someone who just finds
+-- the site and has a question. Stored regardless of whether the email
+-- notification succeeds, same graceful-degradation pattern as inquiries.
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

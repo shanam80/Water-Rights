@@ -5,6 +5,7 @@ const coloradoRoutes = require('./routes/colorado');
 const idahoRoutes = require('./routes/idaho');
 const utahRoutes = require('./routes/utah');
 const marketplaceRoutes = require('./routes/marketplace');
+const contactRoutes = require('./routes/contact');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +20,7 @@ app.use('/api/colorado', coloradoRoutes);
 app.use('/api/idaho', idahoRoutes);
 app.use('/api/utah', utahRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

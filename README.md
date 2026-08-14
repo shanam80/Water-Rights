@@ -246,6 +246,20 @@ PATCH /api/marketplace/listings/:id?token=         edit, or change status (activ
 POST /api/marketplace/listings/:id/inquiries       buyer contacts seller
 ```
 
+## General site contact
+
+`public/contact.html` (linked from every page's footer) is a simple
+name/email/message form for anyone with a general question — not tied to
+a specific listing. `POST /api/contact` saves it to the `contact_messages`
+table regardless of email configuration, and — if both `RESEND_API_KEY`
+and `ADMIN_EMAIL` are set — also emails it to `ADMIN_EMAIL`, same
+graceful-degradation pattern as marketplace inquiries. The destination
+address is never shown on the page itself, only used server-side.
+
+**Not yet built:** an admin copy on every *marketplace* inquiry (as
+opposed to this general contact form) — deferred, see the project memory
+notes if picking this up later.
+
 ## Verifying the scraper still works
 
 Because this depends on a government website that could change its layout
