@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Idaho Water Rights Lookup</title>
+<title>AcreFoot | Idaho Water Rights</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -25,7 +25,10 @@
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter', sans-serif;line-height:1.5;}
   .wrap{max-width:960px;margin:0 auto;padding:40px 24px 80px;}
   header{margin-bottom:32px;}
-  .state-nav{font-family:'JetBrains Mono', monospace; font-size:12px; margin-bottom:14px;}
+  .brand-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .brand-logo{font-family:'Fraunces', serif;font-weight:700;font-size:20px;color:var(--river-deep);text-decoration:none;letter-spacing:-0.01em;}
+  .brand-logo:hover{color:var(--river);}
+  .state-nav{font-family:'JetBrains Mono', monospace; font-size:12px;}
   .state-nav a{color:var(--ink-soft); text-decoration:none; padding:4px 8px; border-radius:5px;}
   .state-nav a.current{color:var(--river); font-weight:600; background:#eaf1f2;}
   .state-nav a:hover{text-decoration:underline;}
@@ -85,7 +88,10 @@
 <div class="wrap">
 
   <header>
-    <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html" class="current">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/marketplace.html">Marketplace</a></nav>
+    <div class="brand-bar">
+      <a href="/" class="brand-logo">AcreFoot</a>
+      <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html" class="current">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/marketplace.html">Marketplace</a></nav>
+    </div>
     <div class="eyebrow">Live data · Idaho</div>
     <h1>Idaho Water Rights Lookup</h1>
     <p class="sub">Search real, live records from the Idaho Department of Water Resources, through this project's own backend. Idaho represents each water right as an actual place-of-use shape — not just a point — so this can show the real area a right covers, not just its approximate location.</p>

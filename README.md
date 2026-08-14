@@ -1,6 +1,7 @@
-# Western Water Rights
+# AcreFoot
 
-A marketplace and lookup tool for western U.S. water rights. See
+A marketplace and lookup tool for western U.S. water rights, live at
+[acrefoot.io](https://acrefoot.io). See
 [`docs/project-briefing.md`](docs/project-briefing.md) for the full project
 background — read that first if you're new here.
 

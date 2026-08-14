@@ -1,8 +1,8 @@
 {
-  "name": "western-water-rights",
+  "name": "acrefoot",
   "version": "0.1.0",
   "private": true,
-  "description": "Backend for the western water rights lookup and marketplace project.",
+  "description": "AcreFoot — backend for the western water rights lookup and marketplace project.",
   "main": "server/index.js",
   "engines": {
     "node": ">=20.0.0"

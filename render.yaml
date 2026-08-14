@@ -17,4 +17,4 @@ services:
       - key: EMAIL_FROM
         sync: false
       - key: PUBLIC_BASE_URL
-        value: https://western-water-rights.onrender.com
+        value: https://acrefoot.io
