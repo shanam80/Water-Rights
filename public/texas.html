@@ -211,10 +211,11 @@ function buildWellCard(well){
       <div class="id-tag">${typeof well.distanceMiles === 'number' ? well.distanceMiles.toFixed(2) + ' mi away' : ''}</div>
       ${rows.length > 0 ? `<dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : `<p class="map-hint">Couldn't confidently identify depth/use fields for this well — see raw record below.</p>`}
       ${well.stateWellNumber ? `
-        <a href="https://www.twdb.texas.gov/groundwater/data/gwdbrpt.asp" target="_blank" rel="noopener"
-          style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; margin:8px 0 0;">
+        <button type="button" onclick="copyWellNumberAndOpen('${well.stateWellNumber}', this)"
+          style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border:none; border-radius:6px; font-size:12.5px; font-weight:600; cursor:pointer; margin:8px 0 0;">
           🔍 Look up State Well Number ${well.stateWellNumber} for full detail
-        </a>
+        </button>
+        <p class="map-hint" style="margin:4px 0 0;">Opens TWDB's well report tool in a new tab and copies this well number to your clipboard — paste it into the "State Well Number" box there and click "View Report" (TWDB's tool doesn't support linking straight to one well yet).</p>
       ` : ''}
       <details style="margin-top:10px;">
         <summary>Show all fields on this record</summary>
@@ -222,6 +223,18 @@ function buildWellCard(well){
       </details>
     </div>
   `;
+}
+
+async function copyWellNumberAndOpen(wellNumber, btn){
+  const originalText = btn.textContent;
+  try {
+    await navigator.clipboard.writeText(wellNumber);
+    btn.textContent = '✅ Copied — paste it in the box that opens';
+  } catch(err){
+    btn.textContent = `Couldn't auto-copy — the number is ${wellNumber}`;
+  }
+  window.open('https://www3.twdb.texas.gov/apps/reports/GWDB/WellData', '_blank', 'noopener');
+  setTimeout(() => { btn.textContent = originalText; }, 4000);
 }
 
 // ---------- Map ----------
