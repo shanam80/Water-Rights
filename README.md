@@ -210,6 +210,49 @@ http://localhost:3001/api/utah/wells/434562/log
   frontend and API both say so plainly rather than showing an empty result
   as if something went wrong.
 
+## What it can do right now: Montana
+
+The richest single-state data source in this project. Montana's DNRC runs
+one ArcGIS FeatureServer with **both** points of diversion (point
+geometry, like Colorado) **and** places of use (real polygons, like
+Idaho) — plus reservoirs as a separate layer — and unlike every other
+state here, **well depth is built directly into the bulk water-rights
+data**, no separate scraper required. Its statewide parcels service is
+also excellent: owner name/address, acreage broken down by land use
+(irrigated/grazing/forest/etc.), and assessed values.
+
+**Water rights for a county** (points of diversion + reservoirs, no
+geometry — this view has no map):
+
+```
+http://localhost:3001/api/montana/water-rights?county=GALLATIN
+```
+
+**Water rights near a point** — adds parcel lookup, on-parcel matching for
+diversions/reservoirs (point-in-polygon against the parcel boundary), and
+any place-of-use polygon that covers this exact point (Esri's own spatial
+query does that polygon test server-side — no manual point-in-polygon
+code needed here, unlike Idaho's):
+
+```
+http://localhost:3001/api/montana/water-rights?county=GALLATIN&lat=45.55&lon=-111.15
+```
+
+**Parcel/ownership lookup alone, at a point:**
+
+```
+http://localhost:3001/api/montana/parcel?lat=45.55&lon=-111.15
+```
+
+### Honest caveats for Montana
+
+- The county-only view intentionally skips geometry to keep response
+  times reasonable (a busy county can have thousands of point records) —
+  it has no map, so nothing is lost by leaving it out.
+- Same caveat as everywhere else: a right sitting on a parcel, or a
+  place-of-use polygon covering a point, isn't proof that right serves
+  that exact property — always confirm with the state directly.
+
 ## The marketplace
 
 The differentiator from the original project vision: owners list a water
