@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AcreFoot | Nevada Water Rights</title>
+<title>AcreFoot | Texas Groundwater</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -47,9 +47,6 @@
   .method-panel.active{display:block;}
   #map{height:340px;border-radius:8px;border:1px solid var(--line);margin-top:4px;}
   .map-hint{font-size:12.5px;color:var(--ink-soft);margin:10px 0 0;}
-  .map-legend{display:flex;flex-wrap:wrap;gap:12px 16px;margin-top:10px;font-size:12px;color:var(--ink-soft);}
-  .map-legend span{display:flex;align-items:center;gap:5px;}
-  .map-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;box-sizing:content-box;}
   .click-info{margin-top:12px;padding:12px 14px;background:#fdfbf5;border:1px solid var(--line);border-radius:8px;font-size:13px;}
   .click-info .ci-row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;flex-wrap:wrap;}
   .click-info .ci-row dt{color:var(--ink-soft);}
@@ -63,9 +60,9 @@
   .right-card .row:last-of-type{border-bottom:none;}
   .right-card .row dt{color:var(--ink-soft);}
   .right-card .row dd{margin:0;text-align:right;font-weight:500;word-break:break-word;overflow-wrap:break-word;min-width:0;}
-  .badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:5px;background:#eaf1f2;color:var(--river);margin-bottom:8px;}
-  .badge.pou{background:#fbf3e4;color:var(--amber);}
-  .distance-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--river-deep);background:#eaf1f2;padding:2px 8px;border-radius:5px;margin-bottom:10px;}
+  .note{margin-top:12px;padding:10px 12px;border-radius:7px;font-size:13px;line-height:1.4;}
+  .note.info{background:#eef4f1;color:var(--moss);}
+  .note.warn{background:#fbf3e4;color:var(--amber);}
   .source-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:6px;display:inline-block;margin-top:6px;}
   footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
   footer a{color:var(--river);}
@@ -78,15 +75,15 @@
   <header>
     <div class="brand-bar">
       <a href="/" class="brand-logo">AcreFoot</a>
-      <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/montana.html">Montana</a> · <a href="/nevada.html" class="current">Nevada</a> · <a href="/texas.html">Texas</a> · <a href="/marketplace.html">Marketplace</a></nav>
+      <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/montana.html">Montana</a> · <a href="/nevada.html">Nevada</a> · <a href="/texas.html" class="current">Texas</a> · <a href="/marketplace.html">Marketplace</a></nav>
     </div>
-    <div class="eyebrow">Live data · Nevada</div>
-    <h1>Nevada Water Rights Lookup</h1>
-    <p class="sub">Search real, live records from Nevada's Division of Water Resources, through this project's own backend. Nevada tracks points of diversion, place-of-use areas, and well driller reports with full construction detail — depth, static water level, yield — already built into the bulk data.</p>
+    <div class="eyebrow">Live data · Texas</div>
+    <h1>Texas Groundwater &amp; Well Lookup</h1>
+    <p class="sub">Texas works fundamentally differently from every other state here. Groundwater follows the "rule of capture," not prior appropriation — there's no state-tracked "water right" with a priority date the way Colorado, Idaho, Utah, Montana, or Nevada have. Ownership is simply an incident of owning the land above it. So instead of water rights, this looks up what <em>is</em> genuinely tracked in Texas: the parcel, which Groundwater Conservation District (if any) regulates it, and nearby wells on file.</p>
   </header>
 
   <div class="panel">
-    <h2>Find water rights near a property</h2>
+    <h2>Find groundwater information near a property</h2>
     <p class="hint">Search by address or tap a location on the map.</p>
 
     <div class="method-toggle">
@@ -98,8 +95,8 @@
       <form id="addressForm">
         <div class="field" style="flex:2;">
           <label for="addressInput">Street address</label>
-          <input type="text" id="addressInput" placeholder="e.g. 1 E Liberty St, Reno">
-          <p class="map-hint" style="margin-top:8px;">Include the city — state is assumed to be Nevada.</p>
+          <input type="text" id="addressInput" placeholder="e.g. 301 Congress Ave, Austin">
+          <p class="map-hint" style="margin-top:8px;">Include the city — state is assumed to be Texas.</p>
         </div>
         <button type="submit" id="addressBtn">Find</button>
       </form>
@@ -108,13 +105,8 @@
     <div class="method-panel" id="method-map">
       <div id="map"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:8px;">
-        <p class="map-hint" style="margin:0;">Tap or click anywhere in Nevada.</p>
+        <p class="map-hint" style="margin:0;">Tap or click anywhere in Texas.</p>
         <button type="button" id="locateBtn" style="background:#fff; color:var(--river); border:1px solid var(--river); padding:8px 14px; font-size:13px;">📍 Use my location</button>
-      </div>
-      <div class="map-legend">
-        <span><i style="background:#2b6777;"></i>Point of diversion</span>
-        <span><i style="background:#b8863a; border-radius:3px;"></i>Place of use (polygon)</span>
-        <span><i style="background:#2b6777; box-shadow:0 0 0 2px #e8871e;"></i>Gold ring = on this parcel</span>
       </div>
     </div>
 
@@ -122,10 +114,10 @@
     <div class="click-info" id="clickInfo" style="display:none;"></div>
   </div>
 
-  <div class="panel" id="cardsPanel" style="display:none;">
-    <h2>What this means, in plain terms</h2>
-    <p class="hint" id="cardsHint"></p>
-    <div id="cardsContainer"></div>
+  <div class="panel" id="gcdPanel" style="display:none;">
+    <h2>Groundwater Conservation District</h2>
+    <p class="hint">The district (if any) that regulates groundwater use at this point.</p>
+    <div id="gcdContainer"></div>
   </div>
 
   <div class="panel" id="wellsPanel" style="display:none;">
@@ -135,9 +127,9 @@
   </div>
 
   <footer>
-    <p><strong>What this is:</strong> live data from Nevada NDWR's water-rights and well-driller-report services, plus a statewide parcel index, pulled through this project's own backend.</p>
-    <p><strong>What this isn't yet:</strong> a guarantee that a nearby right serves the property you searched. Also, Nevada's parcel data here is thinner than other states' — a boundary, acreage, and a link to that county assessor's full record, not owner name/address directly. County codes and permit status codes are shown as Nevada's own raw abbreviations (e.g. "WA", "DEC") rather than translated — only one mapping was ever confirmed live, not enough to safely guess the rest.</p>
-    <div class="source-tag">Sources: arcgis.water.nv.gov (Nevada NDWR) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
+    <p><strong>What this is:</strong> live data from TWDB's Groundwater Database (well locations), TWDB's Groundwater Conservation District boundaries, and TxGIO's StratMap statewide parcel dataset — pulled through this project's own backend.</p>
+    <p><strong>What this isn't yet:</strong> well yield or water-level readings. TWDB's live map data only includes each well's location, depth, owner, use, and aquifer — the fuller construction/yield detail exists in TWDB's records but is served through a legacy report system this project can't reach directly yet. Search a well's State Well Number at TWDB's own reports page (linked below) for that detail in the meantime. This also isn't a district's actual production/spacing rules — only which district applies, not its specific restrictions (a harder, separate piece not built yet).</p>
+    <div class="source-tag">Sources: services.twdb.texas.gov (TWDB wells, GCD boundaries) · StratMap/TxGIO (parcels) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback.</p>
   </footer>
 
@@ -149,9 +141,8 @@ const addressForm = document.getElementById('addressForm');
 const addressInput = document.getElementById('addressInput');
 const addressBtn = document.getElementById('addressBtn');
 const statusEl = document.getElementById('status');
-const cardsPanel = document.getElementById('cardsPanel');
-const cardsHint = document.getElementById('cardsHint');
-const cardsContainer = document.getElementById('cardsContainer');
+const gcdPanel = document.getElementById('gcdPanel');
+const gcdContainer = document.getElementById('gcdContainer');
 const wellsPanel = document.getElementById('wellsPanel');
 const wellsHint = document.getElementById('wellsHint');
 const wellsContainer = document.getElementById('wellsContainer');
@@ -176,91 +167,15 @@ function autoLink(val){
 }
 function rawFieldsHtml(raw){
   return Object.entries(raw)
-    .filter(([k, v]) => v !== null && v !== '' && !/objectid|shape|globalid/i.test(k))
+    .filter(([k, v]) => v !== null && v !== '' && !/objectid|shape/i.test(k))
     .map(([k, v]) => `<div class="row"><dt>${humanLabel(k)}</dt><dd>${autoLink(v)}</dd></div>`)
     .join('');
-}
-
-// ---------- Water right / place-of-use cards (translation already
-// happened server-side — see server/services/nevada/translate.js) ----------
-function buildRightCard(right, opts){
-  opts = opts || {};
-  const rows = [];
-  if(right.statusCode) rows.push(['Status code', right.statusCode]);
-  if(right.priorityDate.plain) rows.push(['Priority date', right.priorityDate.plain]);
-  if(right.source) rows.push(['Water source', right.source]);
-  if(right.diversionRateCfs) rows.push(['Diversion rate', `${right.diversionRateCfs} cfs`]);
-  if(right.dutyBalanceAF) rows.push(['Duty balance', `${right.dutyBalanceAF} acre-feet`]);
-  if(right.placeOfUseAcres) rows.push(['Place-of-use acres', right.placeOfUseAcres]);
-  if(right.decreeName) rows.push(['Decree', right.decreeName]);
-  if(right.countyCode) rows.push(['County code', right.countyCode]);
-  if(right.basin) rows.push(['Basin', right.basin]);
-
-  let distanceTag = '';
-  if(opts.onParcel){
-    distanceTag = `<div class="distance-tag" style="background:#eaf4ea; color:var(--moss); font-weight:600;">✓ On this parcel</div>`;
-  } else if(typeof right.distanceMiles === 'number' && isFinite(right.distanceMiles)){
-    distanceTag = `<div class="distance-tag">${right.distanceMiles < 0.1 ? 'At this location' : right.distanceMiles.toFixed(1) + ' mi away'}</div>`;
-  }
-
-  return `
-    <div class="right-card">
-      ${right.recordType === 'placeOfUse' ? '<div class="badge pou">Place of use</div>' : '<div class="badge">Point of diversion</div>'}
-      ${distanceTag}
-      <h3>${right.siteName || `Application ${right.appNumber || ''}`}</h3>
-      <div class="id-tag">${right.appNumber ? `App# ${right.appNumber}` : ''}</div>
-      ${right.officialRecordUrl ? `
-        <a href="${right.officialRecordUrl}" target="_blank" rel="noopener"
-          style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; margin:4px 0 10px;">
-          📄 View official permit record
-        </a>
-      ` : ''}
-      ${rows.length > 0 ? `<dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}
-      <details style="margin-top:10px;">
-        <summary>Show all fields on this record</summary>
-        <dl style="margin-top:8px;">${rawFieldsHtml(right.raw)}</dl>
-      </details>
-    </div>
-  `;
-}
-
-function buildWellCard(well){
-  const rows = [];
-  if(well.depthDrilledFt) rows.push(['Depth drilled', `${well.depthDrilledFt} ft`]);
-  if(well.staticWaterLevelFt) rows.push(['Static water level', `${well.staticWaterLevelFt} ft`]);
-  if(well.yield){
-    rows.push(['Yield', well.yield.value > 0 ? `${well.yield.value} ${well.yield.unit}` : `Not on file (recorded as 0 — likely not measured, not necessarily a dry well)`]);
-  }
-  if(well.drawdownFt) rows.push(['Drawdown', `${well.drawdownFt} ft`]);
-  if(well.casingDiameterIn) rows.push(['Casing diameter', `${well.casingDiameterIn} in`]);
-  if(well.drillingMethod) rows.push(['Drilling method', well.drillingMethod]);
-  if(well.proposedUse) rows.push(['Use', well.proposedUse]);
-  if(well.wellFinishDate.plain) rows.push(['Completed', well.wellFinishDate.plain]);
-  if(well.ownerCurrent) rows.push(['Owner on file', well.ownerCurrent]);
-
-  return `
-    <div class="right-card">
-      <h3>Well${well.wellLog ? ` — Log #${well.wellLog}` : ''}</h3>
-      <div class="id-tag">${typeof well.distanceMiles === 'number' ? well.distanceMiles.toFixed(2) + ' mi away' : ''}</div>
-      ${well.wellLogReportUrl ? `
-        <a href="${well.wellLogReportUrl}" target="_blank" rel="noopener"
-          style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; margin:4px 0 10px;">
-          📄 View scanned well log
-        </a>
-      ` : ''}
-      ${rows.length > 0 ? `<dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : `<p class="map-hint">Couldn't confidently identify depth/yield fields for this well — see raw record below.</p>`}
-      <details style="margin-top:10px;">
-        <summary>Show all fields on this record</summary>
-        <dl style="margin-top:8px;">${rawFieldsHtml(well.raw)}</dl>
-      </details>
-    </div>
-  `;
 }
 
 function renderParcelInfo(parcel){
   if(!parcel) return '<p class="map-hint">Parcel lookup skipped.</p>';
   if(parcel.error) return `<p class="map-hint" style="color:var(--clay);">Parcel lookup failed: ${parcel.error}</p>`;
-  if(parcel.notFound) return `<p class="map-hint">No parcel found at this exact point in Nevada's statewide dataset (coverage may be incomplete here).</p>`;
+  if(parcel.notFound) return `<p class="map-hint">No parcel found at this exact point in the StratMap dataset (~90% statewide coverage, not 100% — coverage may be incomplete here).</p>`;
   const attrs = parcel.attributes;
   const rows = Object.entries(attrs)
     .filter(([k, v]) => v !== null && v !== '' && !/objectid|shape/i.test(k))
@@ -269,15 +184,55 @@ function renderParcelInfo(parcel){
   return `<dl>${rows}</dl>`;
 }
 
+function renderGcd(gcd){
+  let html = '';
+  if(gcd.inDistrict){
+    html += `<div class="note info"><strong>${gcd.districtName}</strong> regulates groundwater use here.</div>`;
+  } else {
+    html += `<p class="map-hint">This point isn't inside any Groundwater Conservation District — 81 of Texas's 254 counties have no GCD at all, so this is a genuine result, not a gap in the data.</p>`;
+  }
+  html += `<div class="note warn">Statewide, regardless of district: production fees are capped by Texas Water Code at <strong>$${gcd.statewideProductionFeeCap.agriculturalPerAcreFoot}/acre-foot</strong> annually for agricultural use and <strong>$${gcd.statewideProductionFeeCap.otherPerAcreFoot}/acre-foot</strong> for all other uses. A district's actual spacing, production-limit, and permitting rules aren't looked up yet — only which district applies.</div>`;
+  return html;
+}
+
+function buildWellCard(well){
+  const rows = [];
+  if(well.depthFt) rows.push(['Depth', `${well.depthFt} ft`]);
+  if(well.aquifer) rows.push(['Aquifer', well.aquifer]);
+  if(well.primaryUse) rows.push(['Primary use', well.primaryUse]);
+  if(well.wellType) rows.push(['Well type', well.wellType]);
+  if(well.elevationFt) rows.push(['Elevation', `${well.elevationFt} ft`]);
+  if(well.county) rows.push(['County', well.county]);
+  if(well.owner) rows.push(['Owner on file', well.owner]);
+
+  return `
+    <div class="right-card">
+      <h3>Well ${well.stateWellNumber || ''}</h3>
+      <div class="id-tag">${typeof well.distanceMiles === 'number' ? well.distanceMiles.toFixed(2) + ' mi away' : ''}</div>
+      ${rows.length > 0 ? `<dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : `<p class="map-hint">Couldn't confidently identify depth/use fields for this well — see raw record below.</p>`}
+      ${well.stateWellNumber ? `
+        <a href="https://www.twdb.texas.gov/groundwater/data/gwdbrpt.asp" target="_blank" rel="noopener"
+          style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; margin:8px 0 0;">
+          🔍 Look up State Well Number ${well.stateWellNumber} for full detail
+        </a>
+      ` : ''}
+      <details style="margin-top:10px;">
+        <summary>Show all fields on this record</summary>
+        <dl style="margin-top:8px;">${rawFieldsHtml(well.raw)}</dl>
+      </details>
+    </div>
+  `;
+}
+
 // ---------- Map ----------
 let leafletMap = null;
 let clickMarker = null;
 let parcelPolygonLayer = null;
-let rightsLayers = [];
+let gcdPolygonLayer = null;
 
 function initMap(){
   if(leafletMap) return;
-  leafletMap = L.map('map').setView([39.5, -117.0], 6);
+  leafletMap = L.map('map').setView([31.0, -99.0], 6);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
   }).addTo(leafletMap);
@@ -285,44 +240,6 @@ function initMap(){
 }
 function ringsToLatLngs(rings){
   return rings.map(ring => ring.map(([lonPt, latPt]) => [latPt, lonPt]));
-}
-
-function plotRights(onParcelRights, nearbyRights, placesOfUse){
-  rightsLayers.forEach(l => leafletMap.removeLayer(l));
-  rightsLayers = [];
-
-  function addPointMarker(right, isOnParcel){
-    if(right.geometry?.type !== 'point') return;
-    const marker = L.circleMarker([right.geometry.lat, right.geometry.lon], {
-      radius: isOnParcel ? 9 : 7,
-      color: isOnParcel ? '#e8871e' : '#fff',
-      weight: isOnParcel ? 3 : 1.5,
-      fillColor: '#2b6777',
-      fillOpacity: 0.9
-    }).bindPopup(`<strong>${right.siteName || 'Point of diversion'}</strong><br>${right.appNumber ? `App# ${right.appNumber}<br>` : ''}${isOnParcel ? '<strong>On this parcel</strong>' : (isFinite(right.distanceMiles) ? right.distanceMiles.toFixed(1) + ' mi away' : '')}`);
-    marker.addTo(leafletMap);
-    rightsLayers.push(marker);
-  }
-  onParcelRights.forEach(r => addPointMarker(r, true));
-  nearbyRights.forEach(r => addPointMarker(r, false));
-
-  // Many place-of-use records can share the exact same boundary (one
-  // large irrigation district's shape, copied onto each individual right
-  // recorded within it) — draw each unique polygon once via poly_id
-  // rather than stacking duplicates on top of each other.
-  const drawnPolyIds = new Set();
-  placesOfUse.forEach(pou => {
-    if(!pou.geometry?.rings) return;
-    if(pou.polyId != null){
-      if(drawnPolyIds.has(pou.polyId)) return;
-      drawnPolyIds.add(pou.polyId);
-    }
-    const poly = L.polygon(ringsToLatLngs(pou.geometry.rings), {
-      color: '#b8863a', weight: 2, fillColor: '#b8863a', fillOpacity: 0.15
-    }).bindPopup(`<strong>Place of use</strong>${pou.siteName ? `<br>${pou.siteName}` : ''}`);
-    poly.addTo(leafletMap);
-    rightsLayers.push(poly);
-  });
 }
 
 // ---------- Main search flow ----------
@@ -340,60 +257,48 @@ async function handlePointSelected(lat, lng){
     <div id="parcelInfo"><p class="map-hint">Looking up…</p></div>
   `;
 
-  setStatus('Searching Nevada water rights…');
-  cardsPanel.style.display = 'none';
+  setStatus('Looking up Texas groundwater data…');
+  gcdPanel.style.display = 'none';
   wellsPanel.style.display = 'none';
   if(parcelPolygonLayer){ leafletMap.removeLayer(parcelPolygonLayer); parcelPolygonLayer = null; }
+  if(gcdPolygonLayer){ leafletMap.removeLayer(gcdPolygonLayer); gcdPolygonLayer = null; }
 
+  // Parcel
   try {
-    const res = await fetch(`/api/nevada/water-rights?lat=${lat}&lon=${lng}`);
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
-
-    document.getElementById('parcelInfo').innerHTML = renderParcelInfo(data.parcel);
-
-    let cardsHtml = '';
-    if(data.onParcelRights.length > 0){
-      cardsHtml += `<p style="font-weight:600; color:var(--moss); margin:0 0 12px;">✓ Found ${data.onParcelRights.length} water right${data.onParcelRights.length === 1 ? '' : 's'} directly on this parcel</p>`;
-      cardsHtml += `<div class="cards-grid" style="margin-bottom:24px;">${data.onParcelRights.map(r => buildRightCard(r, { onParcel: true })).join('')}</div>`;
-    }
-    if(data.placesOfUse.length > 0){
-      cardsHtml += `<p style="font-weight:600; color:var(--amber); margin:0 0 12px;">Place-of-use areas covering this exact point (${data.placesOfUse.length}${data.placesOfUse.length >= 50 ? '+, capped' : ''})</p>`;
-      cardsHtml += `<div class="cards-grid" style="margin-bottom:24px;">${data.placesOfUse.slice(0, 12).map(r => buildRightCard(r, {})).join('')}</div>`;
-    }
-    if(data.onParcelRights.length === 0 && data.placesOfUse.length === 0){
-      cardsHtml += `<p style="color:var(--clay); margin:0 0 12px;">No water rights found directly on this parcel or place-of-use area covering this point. See nearby results below.</p>`;
-    }
-    if(data.nearbyRights.length > 0){
-      cardsHtml += `<p style="font-weight:600; color:var(--ink-soft); margin:0 0 12px;">Other nearby points of diversion (within ${data.searchRadiusMiles.toFixed(1)} mi)</p>`;
-      cardsHtml += `<div class="cards-grid">${data.nearbyRights.map(r => buildRightCard(r, {})).join('')}</div>`;
-    }
-    cardsContainer.innerHTML = cardsHtml;
-    cardsHint.textContent = `Searched ${data.fetchedCount} point${data.fetchedCount === 1 ? '' : 's'} of diversion within ${data.searchRadiusMiles.toFixed(1)} miles.`;
-    cardsPanel.style.display = 'block';
-
-    const parcelRings = data.parcel && !data.parcel.error && !data.parcel.notFound ? data.parcel.rings : null;
+    const res = await fetch(`/api/texas/parcel?lat=${lat}&lon=${lng}`);
+    const parcel = await res.json();
+    document.getElementById('parcelInfo').innerHTML = renderParcelInfo(res.ok ? parcel : { error: parcel.error || `Server responded with status ${res.status}` });
+    const parcelRings = res.ok && !parcel.notFound ? parcel.rings : null;
     if(parcelRings && parcelRings.length > 0){
-      const latlngs = ringsToLatLngs(parcelRings);
-      parcelPolygonLayer = L.polygon(latlngs, { color: '#2b6777', weight: 2, fillColor: '#2b6777', fillOpacity: 0.1 }).addTo(leafletMap);
+      parcelPolygonLayer = L.polygon(ringsToLatLngs(parcelRings), { color: '#2b6777', weight: 2, fillColor: '#2b6777', fillOpacity: 0.1 }).addTo(leafletMap);
       leafletMap.fitBounds(parcelPolygonLayer.getBounds(), { maxZoom: 17, padding: [20, 20] });
     } else {
-      leafletMap.setView([lat, lng], 15);
+      leafletMap.setView([lat, lng], 14);
     }
-    plotRights(data.onParcelRights, data.nearbyRights, data.placesOfUse);
   } catch(err){
-    setStatus(serverErrorMessage(err), true);
-    cardsContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">${serverErrorMessage(err)}</p>`;
-    cardsHint.textContent = 'Search failed.';
-    cardsPanel.style.display = 'block';
-    return;
+    document.getElementById('parcelInfo').innerHTML = renderParcelInfo({ error: serverErrorMessage(err) });
   }
 
-  // Wells — separate from water rights, runs independently
+  // GCD
+  try {
+    const res = await fetch(`/api/texas/gcd?lat=${lat}&lon=${lng}`);
+    const gcd = await res.json();
+    if(!res.ok) throw new Error(gcd.error || `Server responded with status ${res.status}`);
+    gcdContainer.innerHTML = renderGcd(gcd);
+    gcdPanel.style.display = 'block';
+    if(gcd.inDistrict && gcd.geometry?.rings){
+      gcdPolygonLayer = L.polygon(ringsToLatLngs(gcd.geometry.rings), { color: '#b8863a', weight: 2, fillColor: '#b8863a', fillOpacity: 0.08, dashArray: '6,6' }).addTo(leafletMap);
+    }
+  } catch(err){
+    gcdContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">${serverErrorMessage(err)}</p>`;
+    gcdPanel.style.display = 'block';
+  }
+
+  // Wells — separate, runs independently
   wellsContainer.innerHTML = '<p class="map-hint">Searching nearby wells…</p>';
   wellsPanel.style.display = 'block';
   try {
-    const res = await fetch(`/api/nevada/wells/nearby?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/texas/wells/nearby?lat=${lat}&lon=${lng}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
     if(data.wells.length === 0){
@@ -401,14 +306,14 @@ async function handlePointSelected(lat, lng){
       wellsHint.textContent = '';
     } else {
       wellsContainer.innerHTML = data.wells.map(buildWellCard).join('');
-      wellsHint.textContent = `Closest ${data.wells.length} well(s) on file within roughly ${data.searchRadiusMiles.toFixed(1)} miles, nearest first.`;
+      wellsHint.textContent = `Closest ${data.wells.length} well(s) on file within roughly ${data.searchRadiusMiles.toFixed(1)} miles, nearest first. Depth and location are on file; yield and water-level readings aren't available through this lookup yet — see each card's link to search TWDB's own reports directly.`;
     }
   } catch(err){
     wellsContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">Wells lookup failed: ${serverErrorMessage(err)}</p>`;
     wellsHint.textContent = '';
   }
 
-  setStatus('Done — pulled live from Nevada NDWR.');
+  setStatus('Done — pulled live from TWDB and StratMap.');
 }
 
 // ---------- Geocoding (JSONP — Census doesn't support direct CORS fetch)
@@ -444,7 +349,7 @@ addressForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   let address = addressInput.value.trim();
   if(!address){ setStatus('Enter an address to search.', true); return; }
-  if(!/\b(nevada|,?\s*nv)\b/i.test(address)) address = `${address}, Nevada`;
+  if(!/\b(texas|,?\s*tx)\b/i.test(address)) address = `${address}, Texas`;
 
   addressBtn.disabled = true;
   addressBtn.textContent = 'Locating…';

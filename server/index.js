@@ -6,6 +6,7 @@ const idahoRoutes = require('./routes/idaho');
 const utahRoutes = require('./routes/utah');
 const montanaRoutes = require('./routes/montana');
 const nevadaRoutes = require('./routes/nevada');
+const texasRoutes = require('./routes/texas');
 const marketplaceRoutes = require('./routes/marketplace');
 const contactRoutes = require('./routes/contact');
 
@@ -23,6 +24,7 @@ app.use('/api/idaho', idahoRoutes);
 app.use('/api/utah', utahRoutes);
 app.use('/api/montana', montanaRoutes);
 app.use('/api/nevada', nevadaRoutes);
+app.use('/api/texas', texasRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/contact', contactRoutes);
 

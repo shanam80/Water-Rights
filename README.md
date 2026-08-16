@@ -304,6 +304,57 @@ http://localhost:3001/api/nevada/parcel?lat=39.53&lon=-119.81
   Nevada's own raw abbreviations, not translated to plain English — see
   above for why.
 
+## What it can do right now: Texas
+
+Texas is fundamentally different from every other state here — deliberately,
+not by omission. Texas groundwater follows the "rule of capture," not prior
+appropriation: there's no state-tracked water right with a priority date,
+ownership is just an incident of owning the land above it. The "look up the
+water right" concept every other state page is built around doesn't apply.
+So this page looks up what Texas actually tracks instead: the parcel, which
+Groundwater Conservation District (if any) regulates that spot, and nearby
+wells on file.
+
+**Parcel + district lookup:**
+
+```
+http://localhost:3001/api/texas/parcel?lat=32.39&lon=-96.85
+http://localhost:3001/api/texas/gcd?lat=32.39&lon=-96.85
+```
+
+**Nearby wells:**
+
+```
+http://localhost:3001/api/texas/wells/nearby?lat=32.39&lon=-96.85
+```
+
+### Honest caveats for Texas
+
+- **Well data is a real, known gap: no yield or water-level values yet.**
+  TWDB's live map-index service (confirmed public) only carries location,
+  depth, owner, use, and aquifer. The richer construction/yield detail the
+  project briefing describes lives behind a legacy SQL Server Reporting
+  Services report viewer (`reports.twdb.texas.gov`, reached only through
+  an internal proxy) that isn't reachable with a plain request — this is a
+  harder scraping problem than Colorado's or Utah's equivalent, not yet
+  solved. Each well card links out to TWDB's own report search instead.
+- **This only identifies which GCD applies, not that district's actual
+  rules.** Production limits, spacing requirements, and permitting
+  thresholds are set independently per-district in each one's management
+  plan (a PDF, not structured data) — extracting those is explicitly a
+  separate, harder follow-on phase per the project briefing, not built
+  here. One fact that's true regardless of district *is* shown: Texas
+  Water Code caps production fees statewide at $1/acre-foot (agricultural)
+  and $10/acre-foot (other uses).
+- Not every point falls inside a GCD — 81 of 254 counties have none at
+  all. That's a genuine result, not missing data.
+- Parcels come from TxGIO's StratMap program, aggregated from 245+ county
+  appraisal districts — roughly 90% statewide coverage, not 100%, and
+  update frequency varies by county.
+- A citation trap worth remembering if this ever needs re-verifying:
+  `tnris.org` (TxGIO's old pre-rebrand name) has dead service endpoints —
+  don't trust an old TNRIS URL without checking it resolves first.
+
 ## The marketplace
 
 The differentiator from the original project vision: owners list a water
