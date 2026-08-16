@@ -253,6 +253,57 @@ http://localhost:3001/api/montana/parcel?lat=45.55&lon=-111.15
   place-of-use polygon covering a point, isn't proof that right serves
   that exact property — always confirm with the state directly.
 
+## What it can do right now: Nevada
+
+Nevada's NDWR runs a large, genuinely public ArcGIS catalog with points of
+diversion, place-of-use polygons, and — uniquely among every state here —
+**well driller reports with full construction detail already
+bulk-queryable**: depth, static water level, yield, drawdown, casing, no
+scraper needed at all, not even Montana's "depth only" middle ground.
+
+Unlike Colorado/Montana, there's no county-search mode here — Nevada
+stores county as an opaque 2-letter code (e.g. `WA`) with no verified
+decode table, so only one mapping was ever confirmed (`WA` = Washoe,
+cross-checked against real data); not enough to safely guess the rest, so
+codes are shown raw rather than translated. This follows Idaho/Utah's
+point-only search pattern instead.
+
+**Water rights near a point** — points of diversion (on-parcel matching +
+distance-sorted nearby) and place-of-use polygons covering that exact
+point:
+
+```
+http://localhost:3001/api/nevada/water-rights?lat=39.53&lon=-119.81
+```
+
+**Nearby wells**, with real construction detail:
+
+```
+http://localhost:3001/api/nevada/wells/nearby?lat=39.53&lon=-119.81
+```
+
+**Parcel lookup alone, at a point:**
+
+```
+http://localhost:3001/api/nevada/parcel?lat=39.53&lon=-119.81
+```
+
+### Honest caveats for Nevada
+
+- A single point can genuinely intersect thousands of place-of-use
+  polygons — confirmed live (one test point hit the state service's own
+  2000-record transfer limit). That's real data, not a bug: many
+  individual water rights within one large irrigation district each carry
+  a copy of that same district-wide boundary. The API caps this at 50
+  records and says so; the frontend also de-duplicates map polygons by
+  `poly_id` so the same shape isn't drawn dozens of times.
+- Nevada's parcel data is thinner than Colorado's or Montana's — parcel
+  number, acreage, and a link to that county assessor's own record, not
+  owner name/address directly.
+- County and permit-status codes (`county`, `app_status`) are shown as
+  Nevada's own raw abbreviations, not translated to plain English — see
+  above for why.
+
 ## The marketplace
 
 The differentiator from the original project vision: owners list a water
