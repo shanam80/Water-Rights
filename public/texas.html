@@ -188,11 +188,34 @@ function renderGcd(gcd){
   let html = '';
   if(gcd.inDistrict){
     html += `<div class="note info"><strong>${gcd.districtName}</strong> regulates groundwater use here.</div>`;
+    html += renderGcdRestrictions(gcd.districtName, gcd.restrictions);
   } else {
     html += `<p class="map-hint">This point isn't inside any Groundwater Conservation District — 81 of Texas's 254 counties have no GCD at all, so this is a genuine result, not a gap in the data.</p>`;
   }
-  html += `<div class="note warn">Statewide, regardless of district: production fees are capped by Texas Water Code at <strong>$${gcd.statewideProductionFeeCap.agriculturalPerAcreFoot}/acre-foot</strong> annually for agricultural use and <strong>$${gcd.statewideProductionFeeCap.otherPerAcreFoot}/acre-foot</strong> for all other uses. A district's actual spacing, production-limit, and permitting rules aren't looked up yet — only which district applies.</div>`;
+  html += `<div class="note warn">Statewide, regardless of district: production fees are capped by Texas Water Code at <strong>$${gcd.statewideProductionFeeCap.agriculturalPerAcreFoot}/acre-foot</strong> annually for agricultural use and <strong>$${gcd.statewideProductionFeeCap.otherPerAcreFoot}/acre-foot</strong> for all other uses.</div>`;
   return html;
+}
+
+function renderGcdRestrictions(districtName, restrictions){
+  if(!restrictions){
+    return `<p class="map-hint">This district's own spacing, production-limit, and permitting rules haven't been pulled from its management plan yet — ${districtName} isn't in the pilot batch covered so far. See the district's own site for its current rules.</p>`;
+  }
+  const rows = [
+    ['Spacing rules', restrictions.spacingRules],
+    ['Production limits', restrictions.productionLimits],
+    ['Permitting thresholds', restrictions.permittingThresholds],
+    ['Drought / curtailment rules', restrictions.droughtRules],
+  ].filter(([, v]) => v);
+
+  const extractedDate = restrictions.extractedAt ? new Date(restrictions.extractedAt).toLocaleDateString() : '';
+  return `
+    <div class="right-card">
+      ${restrictions.summary ? `<p>${restrictions.summary}</p>` : ''}
+      ${rows.length > 0 ? `<dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}<\dt><dd>${v}<\dd><\div>`).join('')}<\dl>` : ''}
+      <p class="map-hint" style="margin-top:8px;">Pulled automatically from the district's own management plan${restrictions.planYear ? ` (${restrictions.planYear})` : ''} on ${extractedDate} — always verify current rules directly with the district before relying on this for a drilling decision. <a href="${restrictions.sourcePdfUrl}" target="_blank" rel="noopener">View the source document</a>.</p>
+      ${restrictions.confidence !== 'high' ? `<p class="map-hint" style="color:var(--clay);">Extraction confidence: ${restrictions.confidence}${restrictions.notes ? ` — ${restrictions.notes}` : ''}</p>` : ''}
+    </div>
+  `;
 }
 
 function buildWellCard(well){

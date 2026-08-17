@@ -2,6 +2,7 @@ const express = require('express');
 const { fetchParcelAtPoint } = require('../services/texas/parcels');
 const { findGcdAtPoint } = require('../services/texas/gcd');
 const { findNearbyWells } = require('../services/texas/wells');
+const { getRestrictionsByDistrictName } = require('../services/texas/gcdRestrictions');
 
 const router = express.Router();
 
@@ -37,6 +38,9 @@ router.get('/gcd', async (req, res) => {
   if (!point) return;
   try {
     const result = await findGcdAtPoint(point.lat, point.lon);
+    if (result.inDistrict) {
+      result.restrictions = await getRestrictionsByDistrictName(result.districtName);
+    }
     res.json(result);
   } catch (err) {
     res.status(502).json({ error: err.message });

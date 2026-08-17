@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node server/index.js",
     "migrate": "node server/db/migrate.js",
+    "extract:gcd-restrictions": "node server/scripts/extractGcdRestrictions.js",
     "test:well-scraper": "node server/services/colorado/wellCompletionScraper.test.js"
   },
   "dependencies": {

@@ -45,3 +45,26 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   message TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Texas GCD restriction summaries — LLM-extracted from each district's own
+-- management-plan PDF (the plans are legal documents, some scanned with no
+-- text layer, so extraction runs offline via server/scripts/extractGcdRestrictions.js,
+-- never live per-request). district_name must match the DistrictName string
+-- the live TWDB boundary service returns (services.twdb.texas.gov GCD
+-- MapServer), since that's how the /api/texas/gcd route looks a row up.
+-- Pilot covers 8 West Texas districts only — most districts will have no row
+-- here yet, which the frontend treats as "not extracted yet," not an error.
+CREATE TABLE IF NOT EXISTS gcd_restrictions (
+  id SERIAL PRIMARY KEY,
+  district_name TEXT NOT NULL UNIQUE,
+  source_pdf_url TEXT NOT NULL,
+  plan_year INTEGER,
+  summary TEXT,
+  spacing_rules TEXT,
+  production_limits TEXT,
+  permitting_thresholds TEXT,
+  drought_rules TEXT,
+  extraction_confidence TEXT CHECK (extraction_confidence IN ('high', 'medium', 'low')),
+  extraction_notes TEXT,
+  extracted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
