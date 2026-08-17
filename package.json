@@ -12,6 +12,7 @@
     "migrate": "node server/db/migrate.js",
     "extract:gcd-restrictions": "node server/scripts/extractGcdRestrictions.js",
     "extract:gcd-rules-followup": "node server/scripts/extractGcdRulesFollowup.js",
+    "extract:gcd-statewide": "node server/scripts/extractGcdStatewide.js",
     "test:well-scraper": "node server/services/colorado/wellCompletionScraper.test.js"
   },
   "dependencies": {
