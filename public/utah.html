@@ -113,6 +113,12 @@
     <div class="click-info" id="clickInfo" style="display:none;"></div>
   </div>
 
+  <div class="panel" id="parcelPanel" style="display:none;">
+    <h2>Parcel</h2>
+    <p class="hint" id="parcelHint"></p>
+    <div id="parcelInfo"></div>
+  </div>
+
   <div class="panel" id="cardsPanel" style="display:none;">
     <h2>Nearby water rights (points of diversion)</h2>
     <p class="hint" id="cardsHint"></p>
@@ -126,9 +132,9 @@
   </div>
 
   <footer>
-    <p><strong>What this is:</strong> live data pulled through this project's own backend from Utah's WRPOD (Water Rights Points of Diversion) dataset — the actual physical location each water right diverts water from, sorted by distance from your search point — plus Utah's well-log records (location, and for wells with a drilling log on file, real depth/casing/water-level detail).</p>
-    <p><strong>What this isn't yet:</strong> place-of-use area matching (whether a right specifically serves this parcel), parcel ownership, or a marketplace — those are still ahead, same as Colorado and Idaho. Parcel lookup for Utah hasn't been researched yet.</p>
-    <div class="source-tag">Sources: Utah Division of Water Rights (WRPOD, well logs) · geocoding.geo.census.gov (U.S. Census, geocoding only) · OpenStreetMap (map tiles)</div>
+    <p><strong>What this is:</strong> live data pulled through this project's own backend from Utah's WRPOD (Water Rights Points of Diversion) dataset — the actual physical location each water right diverts water from, sorted by distance from your search point — Utah's well-log records (location, and for wells with a drilling log on file, real depth/casing/water-level detail), and Utah's statewide parcel dataset (UGRC, all 29 counties in one common schema).</p>
+    <p><strong>What this isn't yet:</strong> place-of-use area matching (whether a right specifically serves this parcel) or a marketplace — those are still ahead, same as Colorado and Idaho.</p>
+    <div class="source-tag">Sources: Utah Division of Water Rights (WRPOD, well logs) · UGRC statewide parcels · geocoding.geo.census.gov (U.S. Census, geocoding only) · OpenStreetMap (map tiles)</div>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback.</p>
   </footer>
 
@@ -140,6 +146,9 @@ const addressForm = document.getElementById('addressForm');
 const addressInput = document.getElementById('addressInput');
 const addressBtn = document.getElementById('addressBtn');
 const statusEl = document.getElementById('status');
+const parcelPanel = document.getElementById('parcelPanel');
+const parcelHint = document.getElementById('parcelHint');
+const parcelInfo = document.getElementById('parcelInfo');
 const cardsPanel = document.getElementById('cardsPanel');
 const cardsHint = document.getElementById('cardsHint');
 const cardsContainer = document.getElementById('cardsContainer');
@@ -174,6 +183,31 @@ function rawFieldsHtml(raw){
     .filter(([k, v]) => v !== null && v !== '' && !/objectid|shape/i.test(k))
     .map(([k, v]) => `<div class="row"><dt>${humanLabel(k)}</dt><dd>${autoLink(v)}</dd></div>`)
     .join('');
+}
+
+// ---------- Parcel ----------
+function renderParcelInfo(parcel){
+  if(parcel.error) return `<p class="map-hint" style="color:var(--clay);">Parcel lookup failed: ${parcel.error}</p>`;
+  if(parcel.notFound) return `<p class="map-hint">No parcel found at this exact point in Utah's statewide parcel dataset.</p>`;
+  const rows = [];
+  if(parcel.parcelId) rows.push(['Parcel ID', parcel.parcelId]);
+  if(parcel.address) rows.push(['Address on file', parcel.address]);
+  if(parcel.city) rows.push(['City', parcel.city]);
+  if(parcel.zip) rows.push(['ZIP', parcel.zip]);
+  if(parcel.ownerType) rows.push(['Owner type', parcel.ownerType]);
+  if(parcel.recorder) rows.push(['County recorder', parcel.recorder]);
+  if(parcel.parcelYear) rows.push(['Parcel data year', parcel.parcelYear]);
+  let html = rows.length > 0
+    ? `<dl>${rows.map(([l,v]) => `<div class="ci-row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>`
+    : `<p class="map-hint">Couldn't confidently identify standard fields for this parcel — see raw data below.</p>`;
+  if(parcel.countyParcelUrl){
+    html += `<a href="${parcel.countyParcelUrl}" target="_blank" rel="noopener"
+      style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; margin-top:10px;">
+      📄 View county parcel record
+    </a>`;
+  }
+  html += `<details style="margin-top:10px;"><summary>Show all fields on this record</summary><dl style="margin-top:8px;">${rawFieldsHtml(parcel.raw)}</dl></details>`;
+  return html;
 }
 
 // ---------- Water right card (translation already happened server-side —
@@ -289,6 +323,7 @@ wellsContainer.addEventListener('click', async (e) => {
 let leafletMap = null;
 let clickMarker = null;
 let rightsMarkersLayer = null;
+let parcelPolygonLayer = null;
 
 function initMap(){
   if(leafletMap) return;
@@ -297,6 +332,9 @@ function initMap(){
     attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
   }).addTo(leafletMap);
   leafletMap.on('click', (e) => handlePointSelected(e.latlng.lat, e.latlng.lng));
+}
+function ringsToLatLngs(rings){
+  return rings.map(ring => ring.map(([lonPt, latPt]) => [latPt, lonPt]));
 }
 
 // ---------- Main search flow ----------
@@ -311,9 +349,26 @@ async function handlePointSelected(lat, lng){
   clickInfo.innerHTML = `<dl><div class="ci-row"><dt>Coordinates</dt><dd>${lat.toFixed(5)}, ${lng.toFixed(5)}</dd></div></dl>`;
 
   setStatus('Searching Utah water rights…');
+  parcelPanel.style.display = 'none';
   cardsPanel.style.display = 'none';
   wellsPanel.style.display = 'none';
   if(rightsMarkersLayer){ leafletMap.removeLayer(rightsMarkersLayer); rightsMarkersLayer = null; }
+  if(parcelPolygonLayer){ leafletMap.removeLayer(parcelPolygonLayer); parcelPolygonLayer = null; }
+
+  // Parcel — separate, runs independently
+  parcelHint.textContent = '';
+  parcelInfo.innerHTML = '<p class="map-hint">Looking up parcel…</p>';
+  parcelPanel.style.display = 'block';
+  try {
+    const res = await fetch(`/api/utah/parcel?lat=${lat}&lon=${lng}`);
+    const parcel = await res.json();
+    parcelInfo.innerHTML = renderParcelInfo(res.ok ? parcel : { error: parcel.error || `Server responded with status ${res.status}` });
+    if(res.ok && !parcel.notFound && parcel.rings && parcel.rings.length > 0){
+      parcelPolygonLayer = L.polygon(ringsToLatLngs(parcel.rings), { color: '#2b6777', weight: 2, fillColor: '#2b6777', fillOpacity: 0.1 }).addTo(leafletMap);
+    }
+  } catch(err){
+    parcelInfo.innerHTML = renderParcelInfo({ error: serverErrorMessage(err) });
+  }
 
   try {
     const res = await fetch(`/api/utah/water-rights?lat=${lat}&lon=${lng}`);

@@ -1,6 +1,7 @@
 const express = require('express');
 const { findNearbyWaterRights } = require('../services/utah/waterRights');
 const { findNearbyWellLogs, scrapeWellLog } = require('../services/utah/wells');
+const { fetchParcelAtPoint } = require('../services/utah/parcels');
 
 const router = express.Router();
 
@@ -47,6 +48,21 @@ router.get('/wells/nearby', async (req, res) => {
 router.get('/wells/:win/log', async (req, res) => {
   try {
     const result = await scrapeWellLog(req.params.win);
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// GET /api/utah/parcel?lat=&lon=
+router.get('/parcel', async (req, res) => {
+  const point = requireLatLon(req, res);
+  if (!point) return;
+  try {
+    const result = await fetchParcelAtPoint(point.lat, point.lon);
+    if (result.notFound) {
+      return res.status(404).json({ error: "No parcel found at this point in Utah's statewide parcel dataset.", notFound: true });
+    }
     res.json(result);
   } catch (err) {
     res.status(502).json({ error: err.message });
