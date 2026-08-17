@@ -11,14 +11,14 @@ function isConfigured() {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-// pdfBase64: base64-encoded PDF bytes. Returns the raw text of Claude's
+// Shared by both extraction paths below. Returns the raw text of Claude's
 // reply (the caller is responsible for parsing it as JSON, since asking the
 // model to reply JSON-only is a prompt instruction, not a hard guarantee).
-// A large scanned management plan can genuinely take a couple of minutes to
-// process (it's real vision work over 50-150+ page images), so this needs a
-// much longer timeout than the 15s default used for the live API's outbound
+// A large scanned document can genuinely take a couple of minutes to process
+// (it's real vision work over 50-150+ page images), so this needs a much
+// longer timeout than the 15s default used for the live API's outbound
 // government-data calls.
-async function extractFromPdf({ pdfBase64, prompt, maxTokens = 4096, timeoutMs = 240000 }) {
+async function callMessages(content, { maxTokens = 4096, timeoutMs = 240000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res;
@@ -33,15 +33,7 @@ async function extractFromPdf({ pdfBase64, prompt, maxTokens = 4096, timeoutMs =
       body: JSON.stringify({
         model: DEFAULT_MODEL,
         max_tokens: maxTokens,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-              { type: 'text', text: prompt },
-            ],
-          },
-        ],
+        messages: [{ role: 'user', content }],
       }),
       signal: controller.signal,
     });
@@ -63,4 +55,23 @@ async function extractFromPdf({ pdfBase64, prompt, maxTokens = 4096, timeoutMs =
   return textBlock.text;
 }
 
-module.exports = { extractFromPdf, isConfigured };
+// pdfBase64: base64-encoded PDF bytes. Claude renders the pages itself,
+// including scanned/image-only ones, so no separate OCR step is needed here.
+async function extractFromPdf({ pdfBase64, prompt, maxTokens, timeoutMs }) {
+  return callMessages(
+    [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+      { type: 'text', text: prompt },
+    ],
+    { maxTokens, timeoutMs }
+  );
+}
+
+// documentText: already-extracted plain text (e.g. from a .docx via
+// mammoth) — for source documents the API's PDF/vision path doesn't apply
+// to. Claude only sees the text, not the original layout/formatting.
+async function extractFromText({ documentText, prompt, maxTokens, timeoutMs }) {
+  return callMessages([{ type: 'text', text: `${prompt}\n\n---DOCUMENT TEXT---\n${documentText}` }], { maxTokens, timeoutMs });
+}
+
+module.exports = { extractFromPdf, extractFromText, isConfigured };

@@ -11,12 +11,14 @@
     "start": "node server/index.js",
     "migrate": "node server/db/migrate.js",
     "extract:gcd-restrictions": "node server/scripts/extractGcdRestrictions.js",
+    "extract:gcd-rules-followup": "node server/scripts/extractGcdRulesFollowup.js",
     "test:well-scraper": "node server/services/colorado/wellCompletionScraper.test.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
+    "mammoth": "^1.12.1",
     "pg": "^8.13.1"
   }
 }
