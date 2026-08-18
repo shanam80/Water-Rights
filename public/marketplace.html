@@ -64,6 +64,13 @@
   .inquiry-item{border-bottom:1px dashed var(--line);padding:12px 0;font-size:13.5px;}
   .inquiry-item:last-child{border-bottom:none;}
   .inquiry-item .meta{color:var(--ink-soft);font-size:12px;margin-bottom:4px;}
+  .msg-thread{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+  .msg-bubble{max-width:80%;padding:9px 12px;border-radius:9px;font-size:13.5px;}
+  .msg-bubble .meta{font-size:11px;color:var(--ink-soft);margin-bottom:3px;}
+  .msg-bubble.mine{align-self:flex-end;background:#eaf1f2;}
+  .msg-bubble.theirs{align-self:flex-start;background:#fff;border:1px solid var(--line);}
+  .reply-form{display:flex;flex-direction:column;gap:8px;}
+  .reply-form textarea{min-height:60px;}
   footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
   footer a{color:var(--river);}
   .modal-backdrop{position:fixed;inset:0;background:rgba(30,42,36,0.5);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
@@ -176,7 +183,7 @@
   </div>
 
   <footer>
-    <p><strong>What this is:</strong> a listing board connecting water right owners and buyers directly. Submitting a listing requires no account — you get a private management link instead. Contacting a seller (inquiries) is public and doesn't require anything from the buyer beyond a name, email, and message.</p>
+    <p><strong>What this is:</strong> a listing board connecting water right owners and buyers directly. Submitting a listing requires no account — you get a private management link instead. Contacting a seller (inquiries) is public and doesn't require anything from the buyer beyond a name, email, and message; the conversation itself then happens in-platform (each side gets a private link, by email, to view and reply) rather than switching to email right away.</p>
     <p><strong>What this isn't:</strong> a place where money or ownership actually changes hands. Water rights require formal state review to transfer — this is a starting point for that conversation, not a substitute for it. Always confirm a right's actual status directly with the relevant state (linked from each state's lookup page) before relying on anything here.</p>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback.</p>
   </footer>
@@ -288,7 +295,9 @@ function openDetailModal(listing){
       <div class="field full"><label>Message</label><textarea id="inqMessage" required placeholder="Ask about availability, priority date, price flexibility, etc."></textarea></div>
       <button type="submit" id="inqSubmitBtn">Send inquiry</button>
     </form>
+    <p style="font-size:11.5px; color:var(--ink-soft); margin-top:8px;">Messages sent through AcreFoot may be visible to site administrators for moderation and support purposes.</p>
     <div id="inqStatus" class="status"></div>
+    <div id="inqSaveLinkBox" style="display:none;"></div>
   `;
   detailModalBackdrop.classList.remove('hidden');
   document.getElementById('closeModalBtn').addEventListener('click', closeDetailModal);
@@ -312,8 +321,19 @@ function openDetailModal(listing){
       const data = await res.json();
       if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
       status.className = 'status success';
-      status.textContent = 'Sent. The seller will see your message and can reach out to you directly.';
+      status.textContent = 'Sent. The seller will see your message and can reply here on AcreFoot.';
       document.getElementById('inquiryForm').reset();
+
+      const threadUrl = `${location.origin}/marketplace.html?thread=${data.inquiry.id}&token=${data.inquiry.buyerToken}`;
+      const saveLinkBox = document.getElementById('inqSaveLinkBox');
+      saveLinkBox.style.display = 'block';
+      saveLinkBox.innerHTML = `
+        <div class="save-link-box">
+          <strong>You'll get an email with this link — save it here too, just in case:</strong>
+          <p style="margin:8px 0 0; font-size:13px;">This is how you'll see the seller's reply and continue the conversation. There's no login, so this link is the only way back in.</p>
+          <a class="manage-link" href="${threadUrl}">${threadUrl}</a>
+        </div>
+      `;
     } catch(err){
       status.className = 'status error';
       status.textContent = serverErrorMessage(err);
@@ -387,6 +407,120 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
   }
 });
 
+// ---------- Shared: message thread rendering + reply ----------
+function fmtDateTime(iso){
+  return new Date(iso).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function buildThreadHtml(data){
+  const bubbles = data.messages.map(m => `
+    <div class="msg-bubble ${m.sender === data.viewingAs ? 'mine' : 'theirs'}">
+      <div class="meta">${m.sender === 'buyer' ? data.buyerName : 'Seller'} · ${fmtDateTime(m.createdAt)}</div>
+      <div>${m.body}</div>
+    </div>
+  `).join('');
+  return `
+    <div class="msg-thread">${bubbles}</div>
+    <form class="reply-form" data-inquiry-id="${data.inquiryId}">
+      <textarea placeholder="Write a reply…" required></textarea>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button type="submit">Send reply</button>
+        <span class="status reply-status" style="margin:0;"></span>
+      </div>
+    </form>
+  `;
+}
+
+function attachReplyHandler(container, token, onSent){
+  const form = container.querySelector('.reply-form');
+  if(!form) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const inquiryId = form.dataset.inquiryId;
+    const textarea = form.querySelector('textarea');
+    const statusEl = form.querySelector('.reply-status');
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch(`/api/marketplace/inquiries/${inquiryId}/messages?token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: textarea.value.trim() }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+      textarea.value = '';
+      statusEl.className = 'status success reply-status';
+      statusEl.textContent = 'Sent.';
+      if(onSent) onSent();
+    } catch(err){
+      statusEl.className = 'status error reply-status';
+      statusEl.textContent = serverErrorMessage(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send reply';
+    }
+  });
+}
+
+async function loadAndRenderThread(inquiryId, token, container){
+  container.innerHTML = '<p class="hint">Loading conversation…</p>';
+  try {
+    const res = await fetch(`/api/marketplace/inquiries/${inquiryId}/thread?token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+    data.inquiryId = inquiryId;
+    container.innerHTML = buildThreadHtml(data);
+    attachReplyHandler(container, token, () => loadAndRenderThread(inquiryId, token, container));
+  } catch(err){
+    container.innerHTML = `<p class="status error">${serverErrorMessage(err)}</p>`;
+  }
+}
+
+function toggleThread(inquiryId, token, btn){
+  const container = document.getElementById('thread-' + inquiryId);
+  const isOpen = container.style.display !== 'none';
+  if(isOpen){
+    container.style.display = 'none';
+    btn.textContent = 'View conversation & reply';
+    return;
+  }
+  container.style.display = 'block';
+  btn.textContent = 'Hide conversation';
+  loadAndRenderThread(inquiryId, token, container);
+}
+
+// ---------- Buyer thread view (?thread=<inquiryId>&token=<buyerToken>) ----------
+async function initThreadView(){
+  const params = new URLSearchParams(location.search);
+  const inquiryId = params.get('thread');
+  const token = params.get('token');
+  if(!inquiryId || !token) return;
+
+  document.getElementById('mainPanel').style.display = 'none';
+  const managePanel = document.getElementById('managePanel');
+  const manageContent = document.getElementById('manageContent');
+  managePanel.style.display = 'block';
+  manageContent.innerHTML = '<p class="status">Loading…</p>';
+
+  try {
+    const res = await fetch(`/api/marketplace/inquiries/${inquiryId}/thread?token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+    data.inquiryId = inquiryId;
+    manageContent.innerHTML = `
+      <h3 style="margin:4px 0;">Re: ${data.listingTitle}</h3>
+      ${data.listingStatus && data.listingStatus !== 'active' ? `<div class="badge sold" style="margin-bottom:10px;">Listing ${data.listingStatus}</div>` : ''}
+      <p style="font-size:11.5px; color:var(--ink-soft); margin-top:0 0 14px;">Messages sent through AcreFoot may be visible to site administrators for moderation and support purposes.</p>
+      ${buildThreadHtml(data)}
+    `;
+    attachReplyHandler(manageContent, token, () => initThreadView());
+  } catch(err){
+    manageContent.innerHTML = `<p class="status error">${serverErrorMessage(err)}</p>`;
+  }
+}
+
 // ---------- Manage view (?manage=<id>&token=<token>) ----------
 async function initManageView(){
   const params = new URLSearchParams(location.search);
@@ -430,10 +564,16 @@ function renderManageView(listing, inquiries, token){
         <div class="inquiry-item">
           <div class="meta">${i.buyerName} · ${i.buyerEmail} · ${fmtDate(i.createdAt)}</div>
           <div>${i.message}</div>
-          <a href="mailto:${i.buyerEmail}?subject=${encodeURIComponent('Re: ' + listing.title)}" style="font-size:12.5px; color:var(--river);">Reply by email &rarr;</a>
+          <button type="button" class="secondary view-thread-btn" data-inquiry-id="${i.id}"
+            style="font-size:12.5px; padding:5px 10px; margin-top:8px;">View conversation &amp; reply</button>
+          <div class="thread-container" id="thread-${i.id}" style="display:none; margin-top:10px;"></div>
         </div>
       `).join('')}
   `;
+
+  manageContent.querySelectorAll('.view-thread-btn').forEach(btn => {
+    btn.addEventListener('click', () => toggleThread(btn.dataset.inquiryId, token, btn));
+  });
 
   async function setStatus(newStatus){
     const actionStatus = document.getElementById('manageActionStatus');
@@ -462,8 +602,11 @@ function renderManageView(listing, inquiries, token){
 }
 
 // ---------- Init ----------
-if(new URLSearchParams(location.search).has('manage')){
+const initParams = new URLSearchParams(location.search);
+if(initParams.has('manage')){
   initManageView();
+} else if(initParams.has('thread')){
+  initThreadView();
 } else {
   loadListings();
 }

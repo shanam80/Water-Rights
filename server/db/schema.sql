@@ -30,10 +30,33 @@ CREATE TABLE IF NOT EXISTS inquiries (
   buyer_name TEXT NOT NULL,
   buyer_email TEXT NOT NULL,
   message TEXT NOT NULL,
+  buyer_token TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_inquiries_listing_id ON inquiries (listing_id);
+
+-- buyer_token was added after the table already existed in production —
+-- IF NOT EXISTS makes this safe to rerun against a fresh DB (where the
+-- CREATE TABLE above already includes it) or an existing one.
+ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS buyer_token TEXT;
+
+-- The actual back-and-forth for an inquiry. The buyer's opening message
+-- stays on inquiries.message (unchanged, so existing rows don't need
+-- backfilling) — this table holds everything after that, from either side.
+-- Keeping the conversation here instead of raw email is the whole point:
+-- see docs/project-briefing.md §1 and the in-platform-messaging design note
+-- — off-platform contact exchange loses the platform any visibility into
+-- whether a match happened, which is real lead value for a future paid tier.
+CREATE TABLE IF NOT EXISTS messages (
+  id SERIAL PRIMARY KEY,
+  inquiry_id INTEGER NOT NULL REFERENCES inquiries(id) ON DELETE CASCADE,
+  sender TEXT NOT NULL CHECK (sender IN ('buyer', 'seller')),
+  body TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_inquiry_id ON messages (inquiry_id);
 
 -- General site contact — not tied to any listing. Someone who just finds
 -- the site and has a question. Stored regardless of whether the email

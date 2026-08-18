@@ -1,6 +1,7 @@
 const express = require('express');
 const { createListing, listListings, getListing, getListingForOwner, updateListing } = require('../services/marketplace/listings');
 const { createInquiry, getInquiriesForListing } = require('../services/marketplace/inquiries');
+const { getThread, postMessage } = require('../services/marketplace/messages');
 
 const router = express.Router();
 
@@ -79,6 +80,35 @@ router.post('/listings/:id/inquiries', async (req, res) => {
   try {
     const result = await createInquiry(req.params.id, req.body || {});
     if (result.notFound) return res.status(404).json({ error: 'Listing not found.' });
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/marketplace/inquiries/:id/thread?token=
+// The full in-platform conversation for one inquiry. token is either the
+// buyer's own buyer_token (from their confirmation email) or the seller's
+// listing edit_token — whichever matches determines which side you're
+// viewing as.
+router.get('/inquiries/:id/thread', async (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(400).json({ error: 'token query param is required.' });
+
+  const result = await getThread(req.params.id, token);
+  if (result.forbidden) return res.status(403).json({ error: 'That token does not match this conversation.' });
+  res.json(result);
+});
+
+// POST /api/marketplace/inquiries/:id/messages
+// Post a reply, as either side (see token note above).
+router.post('/inquiries/:id/messages', async (req, res) => {
+  const token = req.query.token || req.body?.token;
+  if (!token) return res.status(400).json({ error: 'token is required (query param or body field).' });
+
+  try {
+    const result = await postMessage(req.params.id, token, req.body?.message);
+    if (result.forbidden) return res.status(403).json({ error: 'That token does not match this conversation.' });
     res.status(201).json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });

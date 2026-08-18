@@ -10,7 +10,7 @@ function isConfigured() {
   return Boolean(process.env.RESEND_API_KEY);
 }
 
-async function sendEmail({ to, subject, text, replyTo, from }) {
+async function sendEmail({ to, subject, text, replyTo, from, bcc }) {
   const fromAddress = from || process.env.EMAIL_FROM || 'AcreFoot <onboarding@resend.dev>';
 
   const res = await fetch(RESEND_API_URL, {
@@ -23,6 +23,7 @@ async function sendEmail({ to, subject, text, replyTo, from }) {
       from: fromAddress,
       to,
       ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(bcc ? { bcc } : {}),
       subject,
       text,
     }),
