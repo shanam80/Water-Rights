@@ -69,6 +69,18 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Interest signups for a possible future paid professional tier (bulk/API
+-- data access, saved searches, lead export). Deliberately just an email
+-- capture, not a real product yet — the point is to see if demand exists
+-- before building accounts/billing. See [[business-model-strategy]].
+CREATE TABLE IF NOT EXISTS professional_interest (
+  id SERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  role TEXT,
+  context TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Texas GCD restriction summaries — LLM-extracted from each district's own
 -- management-plan PDF (the plans are legal documents, some scanned with no
 -- text layer, so extraction runs offline via server/scripts/extractGcdRestrictions.js,

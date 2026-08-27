@@ -10,6 +10,7 @@ const texasRoutes = require('./routes/texas');
 const wyomingRoutes = require('./routes/wyoming');
 const marketplaceRoutes = require('./routes/marketplace');
 const contactRoutes = require('./routes/contact');
+const professionalInterestRoutes = require('./routes/professionalInterest');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,6 +30,7 @@ app.use('/api/texas', texasRoutes);
 app.use('/api/wyoming', wyomingRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/professional-interest', professionalInterestRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
