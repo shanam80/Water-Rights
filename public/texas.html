@@ -62,6 +62,9 @@
   .method-panel.active{display:block;}
   #map{height:340px;border-radius:8px;border:1px solid var(--line);margin-top:4px;}
   .map-hint{font-size:12.5px;color:var(--ink-soft);margin:10px 0 0;}
+  .map-legend{display:flex;flex-wrap:wrap;gap:12px 16px;margin-top:10px;font-size:12px;color:var(--ink-soft);}
+  .map-legend span{display:flex;align-items:center;gap:5px;}
+  .map-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid #fff;box-sizing:content-box;}
   .click-info{margin-top:12px;padding:12px 14px;background:#fdfbf5;border:1px solid var(--line);border-radius:8px;font-size:13px;}
   .click-info .ci-row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;flex-wrap:wrap;}
   .click-info .ci-row dt{color:var(--ink-soft);}
@@ -119,6 +122,10 @@
 
     <div class="method-panel" id="method-map">
       <div id="map"></div>
+      <div class="map-legend">
+        <span><i style="background:#52605a;"></i>Well on file</span>
+        <span><i style="background:#d6336c;"></i>Groundwater monitoring well</span>
+      </div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:8px;">
         <p class="map-hint" style="margin:0;">Tap or click anywhere in Texas.</p>
         <button type="button" id="locateBtn" style="background:#fff; color:var(--river); border:1px solid var(--river); padding:8px 14px; font-size:13px;">📍 Use my location</button>
@@ -311,6 +318,8 @@ let leafletMap = null;
 let clickMarker = null;
 let parcelPolygonLayer = null;
 let gcdPolygonLayer = null;
+let wellsMarkersLayer = null;
+let monitoringMarkersLayer = null;
 
 function initMap(){
   if(leafletMap) return;
@@ -345,6 +354,8 @@ async function handlePointSelected(lat, lng){
   monitoringPanel.style.display = 'none';
   if(parcelPolygonLayer){ leafletMap.removeLayer(parcelPolygonLayer); parcelPolygonLayer = null; }
   if(gcdPolygonLayer){ leafletMap.removeLayer(gcdPolygonLayer); gcdPolygonLayer = null; }
+  if(wellsMarkersLayer){ leafletMap.removeLayer(wellsMarkersLayer); wellsMarkersLayer = null; }
+  if(monitoringMarkersLayer){ leafletMap.removeLayer(monitoringMarkersLayer); monitoringMarkersLayer = null; }
 
   // Parcel
   try {
@@ -390,6 +401,16 @@ async function handlePointSelected(lat, lng){
     } else {
       wellsContainer.innerHTML = data.wells.map(buildWellCard).join('');
       wellsHint.textContent = `Closest ${data.wells.length} well(s) on file within roughly ${data.searchRadiusMiles.toFixed(1)} miles, nearest first. Depth and location are on file; per-well yield isn't available through this lookup yet — see each card's link to search TWDB's own reports directly.`;
+
+      const group = L.layerGroup();
+      data.wells.forEach(w => {
+        if(w.location){
+          L.circleMarker([w.location.lat, w.location.lon], {
+            radius: 6, color: '#fff', weight: 1.5, fillColor: '#52605a', fillOpacity: 0.85
+          }).bindPopup(`<strong>Well ${w.stateWellNumber || ''}</strong>${w.primaryUse ? `<br>${w.primaryUse}` : ''}${w.depthFt ? `<br>${w.depthFt} ft deep` : ''}`).addTo(group);
+        }
+      });
+      wellsMarkersLayer = group.addTo(leafletMap);
     }
   } catch(err){
     wellsContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">Wells lookup failed: ${serverErrorMessage(err)}</p>`;
@@ -411,6 +432,16 @@ async function handlePointSelected(lat, lng){
     } else {
       monitoringContainer.innerHTML = data.wells.map(buildMonitoringWellCard).join('');
       monitoringHint.textContent = `Nearest ${data.wells.length} active monitoring well(s) within ${data.searchRadiusMiles} miles — real depth-to-water readings, but regional context only, not specific to any well on your property. This does not estimate production/pumping capacity — see the district restrictions above for permitted production limits where available.`;
+
+      const group = L.layerGroup();
+      data.wells.forEach(w => {
+        if(w.location){
+          L.circleMarker([w.location.lat, w.location.lon], {
+            radius: 9, color: '#fff', weight: 2, fillColor: '#d6336c', fillOpacity: 0.95
+          }).bindPopup(`<strong>📈 Monitoring well ${w.stateWellNumber || ''}</strong>${w.depthToWaterFt != null ? `<br>${w.depthToWaterFt} ft to water` : ''}${w.asOfDate ? `<br>as of ${w.asOfDate}` : ''}`).addTo(group);
+        }
+      });
+      monitoringMarkersLayer = group.addTo(leafletMap);
     }
   } catch(err){
     monitoringContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">Monitoring well lookup failed: ${serverErrorMessage(err)}</p>`;
