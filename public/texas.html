@@ -141,10 +141,16 @@
     <div id="wellsContainer" class="cards-grid"></div>
   </div>
 
+  <div class="panel" id="monitoringPanel" style="display:none;">
+    <h2>Groundwater level (regional)</h2>
+    <p class="hint" id="monitoringHint"></p>
+    <div id="monitoringContainer" class="cards-grid"></div>
+  </div>
+
   <footer>
-    <p><strong>What this is:</strong> live data from TWDB's Groundwater Database (well locations), TWDB's Groundwater Conservation District boundaries, and TxGIO's StratMap statewide parcel dataset — pulled through this project's own backend.</p>
-    <p><strong>What this isn't yet:</strong> well yield or water-level readings. TWDB's live map data only includes each well's location, depth, owner, use, and aquifer — the fuller construction/yield detail exists in TWDB's records but is served through a legacy report system this project can't reach directly yet. Search a well's State Well Number at TWDB's own reports page (linked below) for that detail in the meantime. This also isn't a district's actual production/spacing rules — only which district applies, not its specific restrictions (a harder, separate piece not built yet).</p>
-    <div class="source-tag">Sources: services.twdb.texas.gov (TWDB wells, GCD boundaries) · StratMap/TxGIO (parcels) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
+    <p><strong>What this is:</strong> live data from TWDB's Groundwater Database (well locations), TWDB's Groundwater Conservation District boundaries and — for most districts — their actual spacing/production/permitting rules, TWDB's automated groundwater-level monitoring network, and TxGIO's StratMap statewide parcel dataset — pulled through this project's own backend.</p>
+    <p><strong>What this isn't yet:</strong> per-well production/yield. TWDB's live map data only includes each well's location, depth, owner, use, and aquifer; the monitoring-well water levels above are real but regional, not specific to any one well or property. The fuller per-well construction/yield detail exists in TWDB's records but is served through a legacy report system this project can't reach directly yet — search a well's State Well Number at TWDB's own reports page (linked on each well card) for that detail in the meantime.</p>
+    <div class="source-tag">Sources: services.twdb.texas.gov (TWDB wells, GCD boundaries) · waterdatafortexas.org (groundwater monitoring) · StratMap/TxGIO (parcels) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback.</p>
   </footer>
 
@@ -161,6 +167,9 @@ const gcdContainer = document.getElementById('gcdContainer');
 const wellsPanel = document.getElementById('wellsPanel');
 const wellsHint = document.getElementById('wellsHint');
 const wellsContainer = document.getElementById('wellsContainer');
+const monitoringPanel = document.getElementById('monitoringPanel');
+const monitoringHint = document.getElementById('monitoringHint');
+const monitoringContainer = document.getElementById('monitoringContainer');
 
 function setStatus(msg, isError){
   statusEl.className = isError ? 'status error' : 'status';
@@ -263,6 +272,28 @@ function buildWellCard(well){
   `;
 }
 
+function buildMonitoringWellCard(well){
+  const rows = [];
+  if(well.depthToWaterFt != null) rows.push(['Depth to water', `${well.depthToWaterFt} ft below surface`]);
+  if(well.asOfDate) rows.push(['As of', well.asOfDate]);
+  if(well.aquifer) rows.push(['Aquifer', well.aquifer]);
+  if(well.county) rows.push(['County', well.county]);
+
+  return `
+    <div class="right-card">
+      <h3>Monitoring well ${well.stateWellNumber || ''}</h3>
+      <div class="id-tag">${typeof well.distanceMiles === 'number' ? well.distanceMiles.toFixed(1) + ' mi away' : ''}</div>
+      ${rows.length > 0 ? `<dl>${rows.map(([l,v]) => `<div class="row"><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}
+      ${well.detailUrl ? `
+        <a href="${well.detailUrl}" target="_blank" rel="noopener"
+          style="display:inline-block; background:var(--river); color:#fff; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; margin:8px 0 0;">
+          📈 View full water-level history
+        </a>
+      ` : ''}
+    </div>
+  `;
+}
+
 async function copyWellNumberAndOpen(wellNumber, btn){
   const originalText = btn.textContent;
   try {
@@ -311,6 +342,7 @@ async function handlePointSelected(lat, lng){
   setStatus('Looking up Texas groundwater data…');
   gcdPanel.style.display = 'none';
   wellsPanel.style.display = 'none';
+  monitoringPanel.style.display = 'none';
   if(parcelPolygonLayer){ leafletMap.removeLayer(parcelPolygonLayer); parcelPolygonLayer = null; }
   if(gcdPolygonLayer){ leafletMap.removeLayer(gcdPolygonLayer); gcdPolygonLayer = null; }
 
@@ -357,11 +389,32 @@ async function handlePointSelected(lat, lng){
       wellsHint.textContent = '';
     } else {
       wellsContainer.innerHTML = data.wells.map(buildWellCard).join('');
-      wellsHint.textContent = `Closest ${data.wells.length} well(s) on file within roughly ${data.searchRadiusMiles.toFixed(1)} miles, nearest first. Depth and location are on file; yield and water-level readings aren't available through this lookup yet — see each card's link to search TWDB's own reports directly.`;
+      wellsHint.textContent = `Closest ${data.wells.length} well(s) on file within roughly ${data.searchRadiusMiles.toFixed(1)} miles, nearest first. Depth and location are on file; per-well yield isn't available through this lookup yet — see each card's link to search TWDB's own reports directly.`;
     }
   } catch(err){
     wellsContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">Wells lookup failed: ${serverErrorMessage(err)}</p>`;
     wellsHint.textContent = '';
+  }
+
+  // Monitoring wells — regional groundwater-level context, separate from
+  // the "wells on file" list above since these are sparse (searched much
+  // wider) and track water level, not any individual well's production.
+  monitoringContainer.innerHTML = '<p class="map-hint">Searching nearby groundwater monitoring wells…</p>';
+  monitoringPanel.style.display = 'block';
+  try {
+    const res = await fetch(`/api/texas/monitoring-wells/nearby?lat=${lat}&lon=${lng}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+    if(data.wells.length === 0){
+      monitoringContainer.innerHTML = `<p class="map-hint">No active groundwater monitoring wells on file within about ${data.searchRadiusMiles} miles — the statewide network only has ~430 wells, so this is common outside monitored areas.</p>`;
+      monitoringHint.textContent = '';
+    } else {
+      monitoringContainer.innerHTML = data.wells.map(buildMonitoringWellCard).join('');
+      monitoringHint.textContent = `Nearest ${data.wells.length} active monitoring well(s) within ${data.searchRadiusMiles} miles — real depth-to-water readings, but regional context only, not specific to any well on your property. This does not estimate production/pumping capacity — see the district restrictions above for permitted production limits where available.`;
+    }
+  } catch(err){
+    monitoringContainer.innerHTML = `<p class="map-hint" style="color:var(--clay);">Monitoring well lookup failed: ${serverErrorMessage(err)}</p>`;
+    monitoringHint.textContent = '';
   }
 
   setStatus('Done — pulled live from TWDB and StratMap.');

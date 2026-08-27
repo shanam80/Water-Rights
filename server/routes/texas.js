@@ -3,6 +3,7 @@ const { fetchParcelAtPoint } = require('../services/texas/parcels');
 const { findGcdAtPoint } = require('../services/texas/gcd');
 const { findNearbyWells } = require('../services/texas/wells');
 const { getRestrictionsByDistrictName } = require('../services/texas/gcdRestrictions');
+const { findNearbyMonitoringWells } = require('../services/texas/monitoringWells');
 
 const router = express.Router();
 
@@ -53,6 +54,21 @@ router.get('/wells/nearby', async (req, res) => {
   if (!point) return;
   try {
     const result = await findNearbyWells(point.lat, point.lon);
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// GET /api/texas/monitoring-wells/nearby?lat=&lon=
+// Regional groundwater-level context from TWDB's automated monitoring
+// network (waterdatafortexas.org) — depth-to-water at nearby sensor wells,
+// searched much wider than the bulk wells list since these are sparse.
+router.get('/monitoring-wells/nearby', async (req, res) => {
+  const point = requireLatLon(req, res);
+  if (!point) return;
+  try {
+    const result = await findNearbyMonitoringWells(point.lat, point.lon);
     res.json(result);
   } catch (err) {
     res.status(502).json({ error: err.message });
