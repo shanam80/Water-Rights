@@ -24,6 +24,13 @@ CREATE TABLE IF NOT EXISTS listings (
 
 CREATE INDEX IF NOT EXISTS idx_listings_state_status ON listings (state, status);
 
+-- Verification snapshot against the real state record for a listing's
+-- claimed right_identifier — see server/services/marketplace/enrichment.js.
+-- A snapshot rather than a live join since the source APIs are outside
+-- our control and a listing should still display even if they're down.
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS verified_data JSONB;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS inquiries (
   id SERIAL PRIMARY KEY,
   listing_id INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,

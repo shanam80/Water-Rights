@@ -5,6 +5,7 @@
 // link, lose access" — an acceptable tradeoff for a first version.
 const crypto = require('node:crypto');
 const { query } = require('../../db');
+const { enrichListing } = require('./enrichment');
 
 const VALID_STATES = ['CO', 'ID', 'UT'];
 const VALID_STATUSES = ['active', 'sold', 'removed'];
@@ -30,6 +31,12 @@ function toPublicListing(row) {
     priceNote: row.price_note,
     contactName: row.contact_name,
     status: row.status,
+    // Snapshot from server/services/marketplace/enrichment.js — real
+    // government data cross-checked against this listing's claimed right,
+    // not just the seller's own free-text entry. Public on purpose: this
+    // is what makes a listing trustworthy to a buyer.
+    verifiedData: row.verified_data,
+    verifiedAt: row.verified_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -62,8 +69,27 @@ async function createListing(input) {
      RETURNING *`,
     [state, rightIdentifier || null, rightType || null, title.trim(), description || null, county || null, askingPriceUsd ?? null, priceNote || null, contactName.trim(), contactEmail.trim(), editToken]
   );
+  let listingRow = rows[0];
 
-  return { listing: toOwnerListing(rows[0]), editToken };
+  // Best-effort — a slow/unreachable state API shouldn't block a listing
+  // from being created (same graceful-degradation pattern as email
+  // notifications elsewhere in this file).
+  if (rightIdentifier && rightIdentifier.trim()) {
+    try {
+      const verifiedData = await enrichListing(state, rightIdentifier);
+      if (verifiedData) {
+        const { rows: updated } = await query(
+          `UPDATE listings SET verified_data = $1, verified_at = now() WHERE id = $2 RETURNING *`,
+          [JSON.stringify(verifiedData), listingRow.id]
+        );
+        listingRow = updated[0];
+      }
+    } catch (err) {
+      console.error(`Listing enrichment failed for new listing #${listingRow.id} (listing was still created):`, err.message);
+    }
+  }
+
+  return { listing: toOwnerListing(listingRow), editToken };
 }
 
 // Browse/search. Only "active" listings are shown by default — a buyer
@@ -139,7 +165,25 @@ async function updateListing(id, editToken, updates) {
   sets.push(`updated_at = now()`);
   params.push(id);
   const { rows } = await query(`UPDATE listings SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
-  return toOwnerListing(rows[0]);
+  let listingRow = rows[0];
+
+  // Re-verify if the claimed right_identifier actually changed — the old
+  // snapshot would otherwise describe a different right than what's shown.
+  const identifierChanged = 'rightIdentifier' in updates && updates.rightIdentifier !== existingRows[0].right_identifier;
+  if (identifierChanged) {
+    try {
+      const verifiedData = listingRow.right_identifier ? await enrichListing(listingRow.state, listingRow.right_identifier) : null;
+      const { rows: updated } = await query(
+        `UPDATE listings SET verified_data = $1, verified_at = $2 WHERE id = $3 RETURNING *`,
+        [verifiedData ? JSON.stringify(verifiedData) : null, verifiedData ? new Date() : null, id]
+      );
+      listingRow = updated[0];
+    } catch (err) {
+      console.error(`Listing re-enrichment failed for listing #${id} (update was still saved):`, err.message);
+    }
+  }
+
+  return toOwnerListing(listingRow);
 }
 
 module.exports = { createListing, listListings, getListing, getListingForOwner, updateListing };

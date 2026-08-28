@@ -115,4 +115,34 @@ async function searchWaterRightsAtPoint(lat, lon) {
   return { rights, layerErrors };
 }
 
-module.exports = { discoverWaterRightLayers, queryWaterRightLayer, searchWaterRightsAtPoint, translateWaterRightFeature };
+// Direct lookup by WaterRightNumber — confirmed live 2026-08-27 that these
+// layers support a plain attribute where-clause, not just geometry
+// intersects. Idaho spreads rights across stage layers (claim, permit,
+// license/decree) so this checks all of them in parallel and returns the
+// first match — a right typically only exists in one stage at a time.
+// Used to verify a marketplace listing's claimed right_identifier.
+async function queryWaterRightLayerByNumber(layer, wrNumber) {
+  try {
+    const url = `${WR_SERVICE_ROOT}/${layer.id}/query?where=${encodeURIComponent(`WaterRightNumber='${wrNumber.replace(/'/g, "''")}'`)}&outFields=*&returnGeometry=true&outSR=4326&f=json`;
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) return { layer, error: `Status ${res.status}` };
+    const data = await res.json();
+    if (data.error) return { layer, error: data.error.message || 'Service returned an error.' };
+    return { layer, features: data.features || [] };
+  } catch (err) {
+    return { layer, error: `Could not reach this layer: ${err.message}` };
+  }
+}
+
+async function getWaterRightByNumber(wrNumber) {
+  const layers = await discoverWaterRightLayers();
+  const results = await Promise.all(layers.map((layer) => queryWaterRightLayerByNumber(layer, wrNumber)));
+  for (const result of results) {
+    if (result.features && result.features.length > 0) {
+      return translateWaterRightFeature(result.features[0], result.layer);
+    }
+  }
+  return null;
+}
+
+module.exports = { discoverWaterRightLayers, queryWaterRightLayer, searchWaterRightsAtPoint, translateWaterRightFeature, getWaterRightByNumber };

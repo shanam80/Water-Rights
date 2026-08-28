@@ -67,4 +67,17 @@ async function searchWaterRightsNearPoint(county, lat, lon, { pageSize = 1000, p
   };
 }
 
-module.exports = { fetchWaterRightsByCounty, searchWaterRightsByCounty, searchWaterRightsNearPoint };
+// Direct lookup by WDID — confirmed live 2026-08-27 that DWR's own API
+// supports filtering on this field directly (?wdid=X), not just by county.
+// Used to verify a marketplace listing's claimed right_identifier against
+// the real record, rather than trusting free-text entry alone.
+async function getWaterRightByWdid(wdid) {
+  const url = `${BULK_URL}?format=json&wdid=${encodeURIComponent(wdid)}`;
+  const res = await fetchWithTimeout(url);
+  if (!res.ok) throw new Error(`DWR responded with status ${res.status}`);
+  const data = await res.json();
+  const row = (data.ResultList || [])[0];
+  return row ? translateWaterRight(row) : null;
+}
+
+module.exports = { fetchWaterRightsByCounty, searchWaterRightsByCounty, searchWaterRightsNearPoint, getWaterRightByWdid };

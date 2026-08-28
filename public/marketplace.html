@@ -73,6 +73,13 @@
   .right-card .desc{font-size:13.5px;color:var(--ink-soft);}
   .badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:5px;background:#eaf1f2;color:var(--river);margin-bottom:8px;}
   .badge.sold{background:#fbeee7;color:var(--clay);}
+  .badge.verified{background:#eef4f1;color:var(--moss);}
+  .verified-panel{background:#eef4f1;border-radius:8px;padding:14px 16px;margin:14px 0;font-size:13px;}
+  .verified-panel .row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;flex-wrap:wrap;}
+  .verified-panel .row dt{color:var(--ink-soft);}
+  .verified-panel .row dd{margin:0;font-weight:500;text-align:right;}
+  .verified-panel a{color:var(--river-deep);}
+  .unverified-note{background:#fbf3e4;border-radius:8px;padding:12px 14px;margin:14px 0;font-size:12.5px;color:var(--amber);}
   .save-link-box{background:#fbf3e4;border:1px solid var(--amber);border-radius:8px;padding:16px;margin-top:14px;}
   .save-link-box strong{color:var(--amber);}
   .manage-link{display:block;word-break:break-all;font-family:'JetBrains Mono',monospace;font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:8px;color:var(--river);}
@@ -248,6 +255,7 @@ function buildListingCard(listing){
   div.className = 'right-card';
   div.innerHTML = `
     ${listing.status === 'sold' ? '<div class="badge sold">Sold</div>' : ''}
+    ${listing.verifiedData?.verified ? '<div class="badge verified">✓ Verified against state records</div>' : ''}
     <h3>${listing.title}</h3>
     <div class="id-tag">${STATE_LABELS[listing.state] || listing.state}${listing.county ? ` · ${listing.county} County` : ''}${listing.rightIdentifier ? ` · ${listing.rightIdentifier}` : ''}</div>
     <div class="price">${fmtPrice(listing)}</div>
@@ -287,6 +295,41 @@ document.getElementById('filterForm').addEventListener('submit', (e) => {
   loadListings();
 });
 
+// ---------- Verification (server/services/marketplace/enrichment.js) ----------
+function renderVerifiedSection(listing){
+  const v = listing.verifiedData;
+  if(!v) return '';
+
+  if(!v.verified){
+    return `
+      <div class="unverified-note">
+        Couldn't independently verify this right against ${STATE_LABELS[v.state] || v.state} state records automatically — this state's public data doesn't support that yet.
+        ${v.officialRecordUrl ? `<a href="${v.officialRecordUrl}" target="_blank" rel="noopener">Check the official record yourself</a>.` : ''}
+      </div>
+    `;
+  }
+
+  const rows = [];
+  if(v.name) rows.push(['On file as', v.name]);
+  if(v.priorityDate?.plain) rows.push(['Priority date', v.priorityDate.plain]);
+  if(v.seniority?.label) rows.push(['Seniority', v.seniority.label]);
+  if(v.decreedUse) rows.push(['Decreed use', v.decreedUse]);
+  if(v.status) rows.push(['Status', v.status]);
+  if(v.confirmedAmount) rows.push(['Confirmed amount', `${v.confirmedAmount.value} ${v.confirmedAmount.unit || ''}`]);
+  if(v.totalAcres) rows.push(['Total acres', v.totalAcres]);
+  if(v.waterSource) rows.push(['Water source', v.waterSource]);
+  if(v.division?.label) rows.push(['Division', v.division.label]);
+
+  return `
+    <div class="verified-panel">
+      <div class="badge verified" style="margin-bottom:10px;">✓ Verified against ${STATE_LABELS[v.state] || v.state} state records</div>
+      <dl>${rows.map(([l, val]) => `<div class="row"><dt>${l}</dt><dd>${val}</dd></div>`).join('')}</dl>
+      ${v.officialRecordUrl ? `<p style="margin:8px 0 0;"><a href="${v.officialRecordUrl}" target="_blank" rel="noopener">View the full official record →</a></p>` : ''}
+      <p style="margin:8px 0 0; font-size:11px; color:var(--ink-soft);">Checked ${fmtDate(v.checkedAt)} — always confirm current status directly with the state before relying on this for a purchase decision.</p>
+    </div>
+  `;
+}
+
 // ---------- Detail modal + inquiry form ----------
 const detailModalBackdrop = document.getElementById('detailModalBackdrop');
 const detailModal = document.getElementById('detailModal');
@@ -302,6 +345,7 @@ function openDetailModal(listing){
     </p>
     <p style="font-size:18px; font-weight:700; color:var(--moss);">${fmtPrice(listing)}</p>
     <p style="white-space:pre-wrap;">${listing.description || 'No further description provided.'}</p>
+    ${renderVerifiedSection(listing)}
     <hr style="border:none; border-top:1px solid var(--line); margin:16px 0;">
     <h4 style="margin:0 0 10px;">Contact ${listing.contactName || 'the seller'}</h4>
     <form id="inquiryForm">
@@ -566,6 +610,7 @@ function renderManageView(listing, inquiries, token){
     <h3 style="margin:4px 0;">${listing.title}</h3>
     <p style="color:var(--ink-soft); font-size:13px;">${STATE_LABELS[listing.state] || listing.state}${listing.county ? ` · ${listing.county} County` : ''} · Contact on file: ${listing.contactEmail}</p>
     <p style="font-size:17px; font-weight:700; color:var(--moss);">${fmtPrice(listing)}</p>
+    ${renderVerifiedSection(listing)}
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin:12px 0;">
       <button type="button" class="secondary" id="markSoldBtn" ${listing.status === 'sold' ? 'disabled' : ''}>Mark as sold</button>
       <button type="button" class="secondary" id="markActiveBtn" ${listing.status === 'active' ? 'disabled' : ''}>Mark as active</button>
