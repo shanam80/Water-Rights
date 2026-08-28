@@ -111,6 +111,7 @@
   button:disabled{background:#a9b3af;cursor:wait;}
   .status{font-size:14px;color:var(--ink-soft);margin-top:14px;min-height:20px;}
   .status.error{color:var(--clay);font-weight:500;}
+  .status.success{color:var(--moss);font-weight:500;}
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
   th{
     text-align:left;
@@ -365,6 +366,19 @@
     </div>
   </div>
 
+  <div class="panel" id="saveSearchPanel" style="display:none;">
+    <h2>📍 Get emailed about new rights here</h2>
+    <p class="hint">We'll check periodically and email you if a new water right shows up on file near this point. No account — just an email tied to this spot.</p>
+    <form id="saveSearchForm" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+      <div class="field" style="flex:1; min-width:200px;">
+        <label for="saveSearchEmail">Email</label>
+        <input type="email" id="saveSearchEmail" required>
+      </div>
+      <button type="submit" id="saveSearchBtn">Save this search</button>
+    </form>
+    <div id="saveSearchStatus" class="status"></div>
+  </div>
+
   <footer>
     <p><strong>What this is:</strong> live data from Colorado DWR's public REST API (the same system water attorneys and engineers use), pulled through this project's own backend rather than straight from the browser. Search by address or map click uses free U.S. Census geocoding to find the county, then the backend pulls that county's water rights, looks up the parcel at that point, and sorts everything by distance.</p>
     <p><strong>What this isn't yet:</strong> a guarantee that the nearest listed right on the map actually belongs to, or serves, the property you searched — water rights are tied to a diversion structure (a ditch headgate, well, or reservoir), which is often not on the same parcel as the address you typed. "Nearby" is a starting point for investigation, not proof of ownership. This also isn't a well-yield estimate, a marketplace, or a valuation — those are still ahead.</p>
@@ -398,6 +412,42 @@ function setStatus(msg, isError){
 function hidePanels(){
   cardsPanel.style.display = 'none';
   resultsPanel.style.display = 'none';
+  document.getElementById('saveSearchPanel').style.display = 'none';
+}
+
+// ---------- Save search (email alert on new rights near a point) ----------
+function showSaveSearchPanel(state, lat, lon, county){
+  const panel = document.getElementById('saveSearchPanel');
+  const form = document.getElementById('saveSearchForm');
+  const status = document.getElementById('saveSearchStatus');
+  status.className = 'status';
+  status.textContent = '';
+  panel.style.display = 'block';
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveSearchBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/saved-searches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: document.getElementById('saveSearchEmail').value.trim(), state, lat, lon, county }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+      status.className = 'status success';
+      status.textContent = `Saved — we'll email you if new water rights show up near here (${data.savedSearch.knownRightCount} on file today).`;
+      form.reset();
+    } catch(err){
+      status.className = 'status error';
+      status.textContent = serverErrorMessage(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save this search';
+    }
+  };
 }
 
 function serverErrorMessage(err){
@@ -708,6 +758,7 @@ async function performPointSearch(county, lat, lon){
 
     renderPointResults(county, { lat, lon }, data);
     setStatus(`Done — pulled live from Colorado DWR (${county} County).`);
+    showSaveSearchPanel('CO', lat, lon, county);
     return data.parcel;
   } catch(err){
     setStatus(serverErrorMessage(err), true);

@@ -63,6 +63,7 @@
   button:disabled{background:#a9b3af;cursor:wait;}
   .status{font-size:14px;color:var(--ink-soft);margin-top:14px;min-height:20px;}
   .status.error{color:var(--clay);font-weight:500;}
+  .status.success{color:var(--moss);font-weight:500;}
   .method-toggle{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
   .method-toggle button{background:#fff;color:var(--ink-soft);border:1px solid var(--line);font-weight:500;padding:8px 14px;}
   .method-toggle button.active{background:var(--river);color:#fff;border-color:var(--river);}
@@ -160,6 +161,19 @@
     <h2>Nearby wells</h2>
     <p class="hint" id="wellsHint"></p>
     <div id="wellsContainer" class="cards-grid"></div>
+  </div>
+
+  <div class="panel" id="saveSearchPanel" style="display:none;">
+    <h2>📍 Get emailed about new rights here</h2>
+    <p class="hint">We'll check periodically and email you if a new water right shows up on file near this point. No account — just an email tied to this spot.</p>
+    <form id="saveSearchForm" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+      <div class="field" style="flex:1; min-width:200px;">
+        <label for="saveSearchEmail">Email</label>
+        <input type="email" id="saveSearchEmail" required>
+      </div>
+      <button type="submit" id="saveSearchBtn">Save this search</button>
+    </form>
+    <div id="saveSearchStatus" class="status"></div>
   </div>
 
   <footer>
@@ -334,6 +348,7 @@ async function handlePointSelected(lat, lng){
 
   setStatus('Searching Idaho water rights…');
   cardsPanel.style.display = 'none';
+  document.getElementById('saveSearchPanel').style.display = 'none';
   rightsPolygonLayers.forEach(l => leafletMap.removeLayer(l));
   rightsPolygonLayers = [];
 
@@ -414,6 +429,42 @@ async function handlePointSelected(lat, lng){
   }
 
   setStatus(layerErrors.length > 0 ? 'Done, with some errors above — see details.' : 'Done — pulled live from IDWR.');
+  showSaveSearchPanel('ID', lat, lng);
+}
+
+// ---------- Save search (email alert on new rights near a point) ----------
+function showSaveSearchPanel(state, lat, lon, county){
+  const panel = document.getElementById('saveSearchPanel');
+  const form = document.getElementById('saveSearchForm');
+  const status = document.getElementById('saveSearchStatus');
+  status.className = 'status';
+  status.textContent = '';
+  panel.style.display = 'block';
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveSearchBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/saved-searches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: document.getElementById('saveSearchEmail').value.trim(), state, lat, lon, county }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+      status.className = 'status success';
+      status.textContent = `Saved — we'll email you if new water rights show up near here (${data.savedSearch.knownRightCount} on file today).`;
+      form.reset();
+    } catch(err){
+      status.className = 'status error';
+      status.textContent = serverErrorMessage(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save this search';
+    }
+  };
 }
 
 // ---------- Geocoding (JSONP — Census doesn't support direct CORS fetch)

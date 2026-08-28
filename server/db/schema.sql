@@ -88,6 +88,31 @@ CREATE TABLE IF NOT EXISTS professional_interest (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Saved point searches with change alerts — no accounts, just an email tied
+-- to one point. A competitor (WaterMap NM) offers this and we didn't; see
+-- expansion-roadmap memory. CO/ID/UT only for v1, since those are the
+-- states server/services/marketplace/enrichment.js already proved support
+-- looking up a right by its own identifier — the same underlying
+-- point-search functions get reused here to build known_right_ids, and
+-- re-run later by server/scripts/checkSavedSearches.js to diff against it.
+-- unsubscribe_token is a single opaque link, same "no login" pattern as a
+-- listing's edit_token or an inquiry's buyer_token.
+CREATE TABLE IF NOT EXISTS saved_searches (
+  id SERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('CO', 'ID', 'UT')),
+  lat DOUBLE PRECISION NOT NULL,
+  lon DOUBLE PRECISION NOT NULL,
+  county TEXT, -- CO only; its search API is county-scoped, not pure lat/lon
+  label TEXT,
+  known_right_ids JSONB NOT NULL DEFAULT '[]',
+  unsubscribe_token TEXT NOT NULL UNIQUE,
+  last_checked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_searches_state ON saved_searches (state);
+
 -- Texas GCD restriction summaries — LLM-extracted from each district's own
 -- management-plan PDF (the plans are legal documents, some scanned with no
 -- text layer, so extraction runs offline via server/scripts/extractGcdRestrictions.js,
