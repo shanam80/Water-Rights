@@ -104,4 +104,20 @@ async function searchWaterRightsNearPoint(county, lat, lon, { parcelRings = null
   };
 }
 
-module.exports = { searchWaterRightsByCounty, searchWaterRightsNearPoint };
+// Direct lookup by WR_NUMBER — confirmed live 2026-08-28 that this layer
+// accepts a plain equality where-clause on it (an initial attempt appeared
+// to fail, but that turned out to be an invalid outFields name in the test
+// query, not a limitation of the service). Used to verify a marketplace
+// listing's claimed identifier; see server/services/marketplace/enrichment.js.
+async function getWaterRightByNumber(wrNumber) {
+  const features = await queryLayer(LAYERS.diversion, {
+    where: `WR_NUMBER='${String(wrNumber).replace(/'/g, "''")}'`,
+    outFields: '*',
+    returnGeometry: 'false',
+    resultRecordCount: '1',
+    f: 'json',
+  });
+  return features.length > 0 ? translateWaterRightFeature(features[0], 'diversion') : null;
+}
+
+module.exports = { searchWaterRightsByCounty, searchWaterRightsNearPoint, getWaterRightByNumber };

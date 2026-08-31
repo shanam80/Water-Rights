@@ -91,4 +91,19 @@ async function searchWaterRightsNearPoint(lat, lon, { parcelRings = null } = {})
   };
 }
 
-module.exports = { searchWaterRightsNearPoint };
+// Direct lookup by application number — confirmed live 2026-08-28 that the
+// `app` field accepts a plain equality where-clause. Used to verify a
+// marketplace listing's claimed identifier; see
+// server/services/marketplace/enrichment.js.
+async function getWaterRightByAppNumber(appNumber) {
+  const features = await queryUrl(DIVERSIONS_URL, {
+    where: `app='${String(appNumber).replace(/'/g, "''")}'`,
+    outFields: '*',
+    returnGeometry: 'false',
+    resultRecordCount: '1',
+    f: 'json',
+  });
+  return features.length > 0 ? translateWaterRightFeature(features[0], 'diversion') : null;
+}
+
+module.exports = { searchWaterRightsNearPoint, getWaterRightByAppNumber };

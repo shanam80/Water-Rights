@@ -31,6 +31,14 @@ CREATE INDEX IF NOT EXISTS idx_listings_state_status ON listings (state, status)
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS verified_data JSONB;
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
 
+-- The marketplace originally launched with only the first three states
+-- built; all seven now have live lookups feeding it. Drop-then-add (rather
+-- than a bare ADD) keeps this idempotent across reruns, since Postgres has
+-- no ADD CONSTRAINT IF NOT EXISTS.
+ALTER TABLE listings DROP CONSTRAINT IF EXISTS listings_state_check;
+ALTER TABLE listings ADD CONSTRAINT listings_state_check
+  CHECK (state IN ('CO', 'ID', 'UT', 'MT', 'NV', 'TX', 'WY'));
+
 CREATE TABLE IF NOT EXISTS inquiries (
   id SERIAL PRIMARY KEY,
   listing_id INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,

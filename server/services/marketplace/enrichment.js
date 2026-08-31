@@ -14,6 +14,9 @@
 // fields, rather than a fabricated one.
 const { getWaterRightByWdid } = require('../colorado/waterRights');
 const { getWaterRightByNumber } = require('../idaho/waterRights');
+const { getWaterRightByNumber: getMontanaRight } = require('../montana/waterRights');
+const { getWaterRightByAppNumber: getNevadaRight } = require('../nevada/waterRights');
+const { getWaterRightByNumber: getWyomingRight } = require('../wyoming/waterRights');
 
 async function enrichListing(state, rightIdentifier) {
   if (!rightIdentifier || !rightIdentifier.trim()) return null;
@@ -57,6 +60,74 @@ async function enrichListing(state, rightIdentifier) {
         waterSource: right.source,
         totalAcres: right.totalAcres,
         officialRecordUrl: right.officialRecordUrl,
+        checkedAt: new Date().toISOString(),
+      };
+    }
+
+    if (state === 'MT') {
+      const right = await getMontanaRight(id);
+      if (!right) return { verified: false, state, rightIdentifier: id, checkedAt: new Date().toISOString() };
+      return {
+        verified: true,
+        state,
+        rightIdentifier: id,
+        name: right.owners || right.wrNumber,
+        priorityDate: right.priorityDate,
+        status: right.status,
+        decreedUse: right.purpose,
+        waterSource: right.source,
+        officialRecordUrl: right.officialRecordUrl,
+        checkedAt: new Date().toISOString(),
+      };
+    }
+
+    if (state === 'NV') {
+      const right = await getNevadaRight(id);
+      if (!right) return { verified: false, state, rightIdentifier: id, checkedAt: new Date().toISOString() };
+      return {
+        verified: true,
+        state,
+        rightIdentifier: id,
+        name: right.siteName || `Application ${right.appNumber}`,
+        priorityDate: right.priorityDate,
+        // Decoded where NDWR's meaning is confirmed — see nevada/codes.js.
+        status: right.status?.label ? `${right.status.label}${right.status.inactive ? ' (inactive)' : ''}` : right.statusCode,
+        waterSource: right.source,
+        county: right.county?.label || null,
+        officialRecordUrl: right.officialRecordUrl,
+        checkedAt: new Date().toISOString(),
+      };
+    }
+
+    if (state === 'WY') {
+      const right = await getWyomingRight(id);
+      if (!right) return { verified: false, state, rightIdentifier: id, checkedAt: new Date().toISOString() };
+      return {
+        verified: true,
+        state,
+        rightIdentifier: id,
+        name: right.facilityName || right.owner,
+        priorityDate: right.priorityDate ? { plain: right.priorityDate } : null,
+        status: right.status,
+        decreedUse: right.uses,
+        totalDepthFt: right.totalDepthFt,
+        checkedAt: new Date().toISOString(),
+      };
+    }
+
+    if (state === 'TX') {
+      // Texas has no state-issued water right to verify against at all —
+      // groundwater follows the "rule of capture" and is an incident of
+      // land ownership, not an independent government-granted right (see
+      // docs/project-briefing.md §8). This is a different situation from
+      // Utah's below (where a registry exists but isn't queryable), so it
+      // gets its own explicit explanation rather than a generic
+      // "couldn't verify" that would wrongly imply a lookup failed.
+      return {
+        verified: false,
+        state,
+        rightIdentifier: id,
+        notApplicable: true,
         checkedAt: new Date().toISOString(),
       };
     }

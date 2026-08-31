@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const { query } = require('../../db');
 const { enrichListing } = require('./enrichment');
 
-const VALID_STATES = ['CO', 'ID', 'UT'];
+const VALID_STATES = ['CO', 'ID', 'UT', 'MT', 'NV', 'TX', 'WY'];
 const VALID_STATUSES = ['active', 'sold', 'removed'];
 
 function generateEditToken() {

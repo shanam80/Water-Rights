@@ -97,4 +97,34 @@ async function findNearbyGroundwaterRights(lat, lon) {
   return { rights, searchRadiusMiles: SEARCH_RADIUS_METERS / 1609.34 };
 }
 
-module.exports = { findNearbyGroundwaterRights };
+// Direct lookup by WR_Number — confirmed live 2026-08-28. Checks both
+// layers (wells and springs) since a right lives in one or the other.
+// Used to verify a marketplace listing's claimed identifier; see
+// server/services/marketplace/enrichment.js.
+async function getWaterRightByNumber(wrNumber) {
+  const safe = String(wrNumber).replace(/'/g, "''");
+  for (const layer of LAYERS) {
+    const params = new URLSearchParams({
+      where: `WR_Number='${safe}'`,
+      outFields: '*',
+      returnGeometry: 'false',
+      resultRecordCount: '1',
+      f: 'json',
+    });
+    const res = await fetchWithTimeout(`${BASE_URL}/${layer.id}/query?${params.toString()}`);
+    if (!res.ok) continue;
+    const data = await res.json();
+    if (data.error) continue;
+    const feature = (data.features || [])[0];
+    if (feature) {
+      // No search point here, so distanceMiles is meaningless — drop it
+      // rather than let it come back as NaN from a null-target haversine.
+      const right = translateFeature(feature, layer.kind, 0, 0);
+      right.distanceMiles = null;
+      return right;
+    }
+  }
+  return null;
+}
+
+module.exports = { findNearbyGroundwaterRights, getWaterRightByNumber };
