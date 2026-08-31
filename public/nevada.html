@@ -151,7 +151,7 @@
 
   <footer>
     <p><strong>What this is:</strong> live data from Nevada NDWR's water-rights and well-driller-report services, plus a statewide parcel index, pulled through this project's own backend.</p>
-    <p><strong>What this isn't yet:</strong> a guarantee that a nearby right serves the property you searched. Also, Nevada's parcel data here is thinner than other states' — a boundary, acreage, and a link to that county assessor's full record, not owner name/address directly. County codes and permit status codes are shown as Nevada's own raw abbreviations (e.g. "WA", "DEC") rather than translated — only one mapping was ever confirmed live, not enough to safely guess the rest.</p>
+    <p><strong>What this isn't yet:</strong> a guarantee that a nearby right serves the property you searched. Also, Nevada's parcel data here is thinner than other states' — a boundary, acreage, and a link to that county assessor's full record, not owner name/address directly. County codes are now fully translated (verified by checking real records' coordinates against Census county boundaries). Permit status codes are translated where NDWR's own published meaning could be confirmed — 14 of the 24 codes in use. The rest still show as Nevada's raw abbreviation: water right status carries legal weight, so an unconfirmed code is left as-is rather than given a plausible-sounding but unverified expansion.</p>
     <div class="source-tag">Sources: arcgis.water.nv.gov (Nevada NDWR) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback. Water rights professional? <a href="/professional.html" style="color:var(--river);">Tell us what you need</a>.</p>
   </footer>
@@ -201,14 +201,22 @@ function rawFieldsHtml(raw){
 function buildRightCard(right, opts){
   opts = opts || {};
   const rows = [];
-  if(right.statusCode) rows.push(['Status code', right.statusCode]);
+  // Decoded server-side where NDWR's meaning could be confirmed; codes we
+  // couldn't verify still show raw, labeled as a code, rather than guessed.
+  if(right.status){
+    rows.push(right.status.label
+      ? ['Status', `${right.status.label}${right.status.inactive ? ' (inactive)' : ''}`]
+      : ['Status code', right.status.code]);
+  }
   if(right.priorityDate.plain) rows.push(['Priority date', right.priorityDate.plain]);
   if(right.source) rows.push(['Water source', right.source]);
   if(right.diversionRateCfs) rows.push(['Diversion rate', `${right.diversionRateCfs} cfs`]);
   if(right.dutyBalanceAF) rows.push(['Duty balance', `${right.dutyBalanceAF} acre-feet`]);
   if(right.placeOfUseAcres) rows.push(['Place-of-use acres', right.placeOfUseAcres]);
   if(right.decreeName) rows.push(['Decree', right.decreeName]);
-  if(right.countyCode) rows.push(['County code', right.countyCode]);
+  if(right.county){
+    rows.push(right.county.label ? ['County', right.county.label] : ['County code', right.county.code]);
+  }
   if(right.basin) rows.push(['Basin', right.basin]);
 
   let distanceTag = '';

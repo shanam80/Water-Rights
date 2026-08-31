@@ -6,12 +6,13 @@
 // both, same approach as Montana.
 //
 // `county` and `app_status` come back as short codes (e.g. "WA", "DEC")
-// with no domain/lookup metadata exposed by the service itself. Only one
-// mapping was verified live (WA = Washoe, cross-checked against a real
-// Reno-area query) — not enough to safely decode the rest, so both fields
-// are passed through as raw codes rather than guessed at, per the
-// project's own rule against trusting unverified translations.
+// with no domain/lookup metadata exposed by the service itself. Both are
+// now decoded in ./codes.js — counties verified live by reverse-geocoding
+// real records, statuses taken from NDWR's own published descriptions.
+// Codes that couldn't be confirmed are still passed through raw rather
+// than guessed at, per the project's rule against unverified translations.
 const { findVal, fmtDatePlain } = require('../../lib/fields');
+const { decodeCounty, decodeStatus } = require('./codes');
 
 function translateWaterRightFeature(feature, recordType) {
   const attrs = feature.attributes;
@@ -28,9 +29,11 @@ function translateWaterRightFeature(feature, recordType) {
     polyId: findVal(attrs, ['poly_id']), // shared boundary identifier — see waterRights.js for why this matters
     appNumber: findVal(attrs, ['app']),
     statusCode: findVal(attrs, ['app_status']),
+    status: decodeStatus(findVal(attrs, ['app_status'])),
     siteName: findVal(attrs, ['site_name']),
     basin: findVal(attrs, ['basin']),
     countyCode: findVal(attrs, ['county']),
+    county: decodeCounty(findVal(attrs, ['county'])),
     source: findVal(attrs, ['source_desc']) || findVal(attrs, ['source']),
     priorityDate: { raw: priorityRaw, plain: fmtDatePlain(priorityRaw) },
     dutyBalanceAF: findVal(attrs, ['duty_balance']),
