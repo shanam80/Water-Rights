@@ -172,6 +172,9 @@ function translateWaterRight(row) {
     structureType,
     delivery,
     waterSource,
+    // Colorado's seniority number (lower = more senior). Needed to compare
+    // this right against active administrative calls — see calls.js.
+    adminNumber: findVal(row, ['adminNumber']),
     priorityDate: { raw: apropDate, plain: fmtDatePlain(apropDate) },
     adjudicationDate: { raw: adjDate, plain: fmtDatePlain(adjDate) },
     division: division !== null ? { raw: division, label: divisionLabel(division) } : null,

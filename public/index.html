@@ -381,7 +381,7 @@
 
   <footer>
     <p><strong>What this is:</strong> live data from Colorado DWR's public REST API (the same system water attorneys and engineers use), pulled through this project's own backend rather than straight from the browser. Search by address or map click uses free U.S. Census geocoding to find the county, then the backend pulls that county's water rights, looks up the parcel at that point, and sorts everything by distance.</p>
-    <p><strong>What this isn't yet:</strong> a guarantee that the nearest listed right on the map actually belongs to, or serves, the property you searched — water rights are tied to a diversion structure (a ditch headgate, well, or reservoir), which is often not on the same parcel as the address you typed. "Nearby" is a starting point for investigation, not proof of ownership. This also isn't a well-yield estimate, a marketplace, or a valuation — those are still ahead.</p>
+    <p><strong>What this isn't yet:</strong> a guarantee that the nearest listed right on the map actually belongs to, or serves, the property you searched — water rights are tied to a diversion structure (a ditch headgate, well, or reservoir), which is often not on the same parcel as the address you typed. "Nearby" is a starting point for investigation, not proof of ownership. Curtailment status comes from DWR's own administrative-call records and is matched by water-source name — real data, but stream administration has tributary nuance a name match doesn't capture, so treat it as a strong signal rather than a legal determination. This also isn't a well-yield estimate or a valuation — those are still ahead.</p>
     <div class="source-tag">Sources: dwr.state.co.us/Rest (Colorado DWR) · gis.colorado.gov (parcels) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback. Water rights professional? <a href="/professional.html" style="color:var(--river);">Tell us what you need</a>.</p>
   </footer>
@@ -517,6 +517,39 @@ function markerColorForType(structureType){
 // ---------- Water right card (the plain-language translation already
 // happened server-side — server/services/colorado/translate.js — this just
 // lays it out) ----------
+// Real curtailment status from DWR's own administrative-call records (see
+// server/services/colorado/calls.js) — whether this right is actually being
+// shut off right now, not an estimate from its priority date.
+function renderCurtailment(c){
+  if(!c) return '';
+
+  const history = c.historicalCallCount > 0
+    ? ` This source has been placed under call <strong>${c.historicalCallCount.toLocaleString()}</strong> time${c.historicalCallCount === 1 ? '' : 's'} since ${c.historicalSinceYear}.`
+    : ` No calls have been recorded on this source since ${c.historicalSinceYear}.`;
+
+  if(c.status === 'no-active-call'){
+    return `<div class="seniority-note senior"><strong>No active call on ${c.waterSource}.</strong> Nothing is currently curtailing diversions on this water source.${history}</div>`;
+  }
+
+  const call = c.call || {};
+  const callDate = call.dateTimeSet ? new Date(call.dateTimeSet).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) : null;
+  const priorityYear = call.priorityDate ? new Date(call.priorityDate).getFullYear() : null;
+  const link = call.moreInformationUrl
+    ? ` <a href="${call.moreInformationUrl}" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">See the official call record</a>.`
+    : '';
+
+  if(c.status === 'out-of-priority'){
+    return `<div class="seniority-note junior">
+      <strong>Likely curtailed right now.</strong> ${call.callingStructure || 'A senior right'}${priorityYear ? ` (${priorityYear})` : ''} has an active call on ${c.waterSource}${callDate ? `, placed ${callDate}` : ''}. This right is junior to it, so it can't legally divert while that call stays on.${history}${link}
+      <div style="margin-top:6px; font-size:11.5px; opacity:.85;">Matched by water-source name against the state's call records — stream administration has tributary nuance this doesn't capture. Confirm with the Division Engineer before acting.</div>
+    </div>`;
+  }
+
+  return `<div class="seniority-note senior">
+    <strong>In priority.</strong> There's an active call on ${c.waterSource}${callDate ? ` (placed ${callDate})` : ''}, but this right is senior to it, so it isn't curtailed by that call.${history}${link}
+  </div>`;
+}
+
 function buildCard(right, county, opts){
   opts = opts || {};
   const rows = [];
@@ -549,6 +582,7 @@ function buildCard(right, county, opts){
           <div class="row"><dt>${label}</dt><dd>${val}</dd></div>
         `).join('')}
       </dl>
+      ${renderCurtailment(right.curtailment)}
       ${right.seniority ? `<div class="seniority-note ${right.seniority.tier}"><strong>${right.seniority.label}.</strong> ${right.seniority.note}</div>` : ''}
       ${right.delivery && right.delivery.note ? `<div class="seniority-note unknown">${right.delivery.note}</div>` : ''}
       ${right.amountExplainer ? `<div class="seniority-note unknown">${right.amountExplainer}</div>` : ''}

@@ -3,6 +3,7 @@ const { findNearestWellPermit } = require('../services/colorado/wellPermits');
 const { scrapeWellCompletion } = require('../services/colorado/wellCompletionScraper');
 const { fetchParcelAtPoint } = require('../services/colorado/parcels');
 const { searchWaterRightsByCounty, searchWaterRightsNearPoint } = require('../services/colorado/waterRights');
+const { attachCurtailment } = require('../services/colorado/calls');
 
 const router = express.Router();
 
@@ -63,6 +64,15 @@ router.get('/water-rights', async (req, res) => {
 
     const parcelRings = parcel && !parcel.error && !parcel.notFound ? parcel.rings : null;
     const result = await searchWaterRightsNearPoint(county, latN, lonN, { pageSize, parcelRings });
+
+    // Real curtailment status from DWR's own administrative-call records.
+    // Best-effort — never let this fail the search itself.
+    try {
+      await attachCurtailment([...result.onParcelRights, ...result.nearbyRights]);
+    } catch (err) {
+      console.error('Curtailment lookup failed (results still returned):', err.message);
+    }
+
     res.json({ parcel, ...result });
   } catch (err) {
     res.status(502).json({ error: err.message });
