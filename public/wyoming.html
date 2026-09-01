@@ -42,6 +42,15 @@
   .eyebrow{font-family:'JetBrains Mono', monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--river);margin-bottom:10px;}
   h1{font-family:'Fraunces', serif;font-weight:700;font-size:clamp(28px,4vw,42px);margin:0 0 12px;color:var(--river-deep);letter-spacing:-0.01em;}
   .sub{color:var(--ink-soft);font-size:16px;max-width:62ch;}
+  .hook{font-size:17px;color:var(--ink);font-weight:600;margin:0 0 8px;max-width:62ch;}
+  /* Brief orientation for a cold visitor arriving from search, before the
+     tool itself. Compact so it doesn't push the search box down for people
+     who already know what they came for. */
+  .personas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0 0;}
+  .persona{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px;}
+  .persona h3{font-family:'Fraunces',serif;font-size:14.5px;margin:0 0 5px;color:var(--river-deep);}
+  .persona p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.45;}
+  .persona a{color:var(--river);}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:24px;}
   .panel h2{font-family:'Fraunces', serif;font-size:19px;margin:0 0 4px;color:var(--ink);}
   .panel .hint{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
@@ -92,7 +101,23 @@
     </div>
     <div class="eyebrow">Live data · Wyoming</div>
     <h1>Wyoming Groundwater Rights Lookup</h1>
+    <p class="hook">Does this property have groundwater rights? Find out in seconds — free, and without making an account.</p>
     <p class="sub">Wyoming's own water-rights system (e-Permit) requires a login with no public access. This instead uses a public dataset the Wyoming State Geological Survey hosts, sourced directly from the State Engineer's Office — real permitted wells and springs, each already combining the water-right record (priority date, status, use) with well construction detail (depth, water level) in one record.</p>
+
+    <div class="personas">
+      <div class="persona">
+        <h3>Landowners &amp; ranchers</h3>
+        <p>Wyoming's own system needs a login. This doesn't — see the permitted wells and springs near your land without one.</p>
+      </div>
+      <div class="persona">
+        <h3>Buying or selling land</h3>
+        <p>Each record combines the water right and the well itself: priority date, status, use, total depth and static water level in one place.</p>
+      </div>
+      <div class="persona">
+        <h3>Water professionals</h3>
+        <p>Every raw state record is one click away on each result. <a href="/professional.html">Tell us what you'd need</a> from a bulk or API tier.</p>
+      </div>
+    </div>
   </header>
 
   <div class="note warn" style="margin-bottom:24px;">This covers groundwater rights (wells and springs) only — Wyoming's surface-water rights (ditches/canals diverting from a stream) and reservoirs aren't available outside the state's login-walled system, so they won't show up here.</div>

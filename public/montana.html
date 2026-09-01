@@ -42,6 +42,15 @@
   .eyebrow{font-family:'JetBrains Mono', monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--river);margin-bottom:10px;}
   h1{font-family:'Fraunces', serif;font-weight:700;font-size:clamp(28px,4vw,42px);margin:0 0 12px;color:var(--river-deep);letter-spacing:-0.01em;}
   .sub{color:var(--ink-soft);font-size:16px;max-width:62ch;}
+  .hook{font-size:17px;color:var(--ink);font-weight:600;margin:0 0 8px;max-width:62ch;}
+  /* Brief orientation for a cold visitor arriving from search, before the
+     tool itself. Compact so it doesn't push the search box down for people
+     who already know what they came for. */
+  .personas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0 0;}
+  .persona{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px;}
+  .persona h3{font-family:'Fraunces',serif;font-size:14.5px;margin:0 0 5px;color:var(--river-deep);}
+  .persona p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.45;}
+  .persona a{color:var(--river);}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:24px;}
   .panel h2{font-family:'Fraunces', serif;font-size:19px;margin:0 0 4px;color:var(--ink);}
   .panel .hint{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
@@ -98,7 +107,23 @@
     </div>
     <div class="eyebrow">Live data · Montana</div>
     <h1>Montana Water Rights Lookup</h1>
+    <p class="hook">Does this property have water rights? Find out in seconds — free, and without making an account.</p>
     <p class="sub">Search real, live records from Montana DNRC's Water Right Query System, through this project's own backend. Montana tracks both points of diversion and place-of-use areas — plus reservoirs — with well depth and parcel ownership built directly into the data.</p>
+
+    <div class="personas">
+      <div class="persona">
+        <h3>Landowners &amp; ranchers</h3>
+        <p>Montana tracks diversions, place-of-use areas and reservoirs — with well depth and parcel ownership built right into the record.</p>
+      </div>
+      <div class="persona">
+        <h3>Buying or selling land</h3>
+        <p>Check the water before you close: priority date, purpose, flow and volume limits, plus who the state has on file as owner.</p>
+      </div>
+      <div class="persona">
+        <h3>Water professionals</h3>
+        <p>Every raw state record is one click away on each result. <a href="/professional.html">Tell us what you'd need</a> from a bulk or API tier.</p>
+      </div>
+    </div>
   </header>
 
   <div class="panel">

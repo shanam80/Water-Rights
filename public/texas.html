@@ -42,6 +42,15 @@
   .eyebrow{font-family:'JetBrains Mono', monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--river);margin-bottom:10px;}
   h1{font-family:'Fraunces', serif;font-weight:700;font-size:clamp(28px,4vw,42px);margin:0 0 12px;color:var(--river-deep);letter-spacing:-0.01em;}
   .sub{color:var(--ink-soft);font-size:16px;max-width:62ch;}
+  .hook{font-size:17px;color:var(--ink);font-weight:600;margin:0 0 8px;max-width:62ch;}
+  /* Brief orientation for a cold visitor arriving from search, before the
+     tool itself. Compact so it doesn't push the search box down for people
+     who already know what they came for. */
+  .personas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0 0;}
+  .persona{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px;}
+  .persona h3{font-family:'Fraunces',serif;font-size:14.5px;margin:0 0 5px;color:var(--river-deep);}
+  .persona p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.45;}
+  .persona a{color:var(--river);}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:24px;}
   .panel h2{font-family:'Fraunces', serif;font-size:19px;margin:0 0 4px;color:var(--ink);}
   .panel .hint{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
@@ -97,7 +106,23 @@
     </div>
     <div class="eyebrow">Live data · Texas</div>
     <h1>Texas Groundwater &amp; Well Lookup</h1>
+    <p class="hook">Can you drill here, and what are the rules? Find out in seconds — free, and without making an account.</p>
     <p class="sub">Texas works fundamentally differently from every other state here. Groundwater follows the "rule of capture," not prior appropriation — there's no state-tracked "water right" with a priority date the way Colorado, Idaho, Utah, Montana, or Nevada have. Ownership is simply an incident of owning the land above it. So instead of water rights, this looks up what <em>is</em> genuinely tracked in Texas: the parcel, which Groundwater Conservation District (if any) regulates it, and nearby wells on file.</p>
+
+    <div class="personas">
+      <div class="persona">
+        <h3>Landowners &amp; ranchers</h3>
+        <p>Texas has no state water right to look up — what matters is your district's rules. See spacing, production limits and permit thresholds where they apply.</p>
+      </div>
+      <div class="persona">
+        <h3>Buying or selling land</h3>
+        <p>Check the parcel, which district regulates it (81 counties have none), and the wells already on file nearby before you close.</p>
+      </div>
+      <div class="persona">
+        <h3>Water professionals</h3>
+        <p>District rules pulled from each district's own management plan, with the source document linked. <a href="/professional.html">Tell us what you'd need</a> from a bulk or API tier.</p>
+      </div>
+    </div>
   </header>
 
   <div class="panel">

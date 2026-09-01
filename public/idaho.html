@@ -50,6 +50,15 @@
   .eyebrow{font-family:'JetBrains Mono', monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--river);margin-bottom:10px;}
   h1{font-family:'Fraunces', serif;font-weight:700;font-size:clamp(28px,4vw,42px);margin:0 0 12px;color:var(--river-deep);letter-spacing:-0.01em;}
   .sub{color:var(--ink-soft);font-size:16px;max-width:62ch;}
+  .hook{font-size:17px;color:var(--ink);font-weight:600;margin:0 0 8px;max-width:62ch;}
+  /* Brief orientation for a cold visitor arriving from search, before the
+     tool itself. Compact so it doesn't push the search box down for people
+     who already know what they came for. */
+  .personas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0 0;}
+  .persona{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px;}
+  .persona h3{font-family:'Fraunces',serif;font-size:14.5px;margin:0 0 5px;color:var(--river-deep);}
+  .persona p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.45;}
+  .persona a{color:var(--river);}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:24px;}
   .panel h2{font-family:'Fraunces', serif;font-size:19px;margin:0 0 4px;color:var(--ink);}
   .panel .hint{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
@@ -110,7 +119,23 @@
     </div>
     <div class="eyebrow">Live data · Idaho</div>
     <h1>Idaho Water Rights Lookup</h1>
+    <p class="hook">Does this property have water rights? Find out in seconds — free, and without making an account.</p>
     <p class="sub">Search real, live records from the Idaho Department of Water Resources, through this project's own backend. Idaho represents each water right as an actual place-of-use shape — not just a point — so this can show the real area a right covers, not just its approximate location.</p>
+
+    <div class="personas">
+      <div class="persona">
+        <h3>Landowners &amp; ranchers</h3>
+        <p>Idaho maps the real place-of-use <em>area</em> a right covers, not just a point — so you can see whether your ground is actually inside one.</p>
+      </div>
+      <div class="persona">
+        <h3>Buying or selling land</h3>
+        <p>Check the water before you close: priority date, status, acres served, and the nearby wells with real depth and yield on file.</p>
+      </div>
+      <div class="persona">
+        <h3>Water professionals</h3>
+        <p>Every raw state record is one click away on each result. <a href="/professional.html">Tell us what you'd need</a> from a bulk or API tier.</p>
+      </div>
+    </div>
   </header>
 
   <div class="panel">
