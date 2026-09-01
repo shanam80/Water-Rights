@@ -154,8 +154,23 @@
     <div id="monitoringContainer" class="cards-grid"></div>
   </div>
 
+  <div class="panel" id="districtMapPanel">
+    <h2>Browse every district on the map</h2>
+    <p class="hint">All 101 groundwater regulatory districts in Texas. Click any district to zoom in and see its actual rules. Coverage isn't statewide — 81 of Texas's 254 counties have no district at all, which is why parts of the map are empty.</p>
+    <button type="button" id="loadDistrictMapBtn">Show the district map</button>
+    <div id="districtMapWrap" style="display:none;">
+      <div id="districtMap" style="height:460px; border-radius:8px; border:1px solid var(--line); margin-top:14px;"></div>
+      <div class="map-legend">
+        <span><i style="background:#2b6777;"></i>Each district shown in a different color</span>
+        <span><i style="background:#fff; border:1.5px dashed var(--ink-soft);"></i>No rules on file yet</span>
+      </div>
+      <div id="districtDetail" style="margin-top:16px;"></div>
+    </div>
+    <div id="districtMapStatus" class="map-hint"></div>
+  </div>
+
   <footer>
-    <p><strong>What this is:</strong> live data from TWDB's Groundwater Database (well locations), TWDB's Groundwater Conservation District boundaries and — for most districts — their actual spacing/production/permitting rules, TWDB's automated groundwater-level monitoring network, and TxGIO's StratMap statewide parcel dataset — pulled through this project's own backend.</p>
+    <p><strong>What this is:</strong> live data from TWDB's Groundwater Database (well locations), TWDB's Groundwater Conservation District boundaries — browsable as a statewide map above — and, for 90 of the 101 districts, their actual spacing/production/permitting rules, TWDB's automated groundwater-level monitoring network, and TxGIO's StratMap statewide parcel dataset — pulled through this project's own backend.</p>
     <p><strong>What this isn't yet:</strong> per-well production/yield. TWDB's live map data only includes each well's location, depth, owner, use, and aquifer; the monitoring-well water levels above are real but regional, not specific to any one well or property. The fuller per-well construction/yield detail exists in TWDB's records but is served through a legacy report system this project can't reach directly yet — search a well's State Well Number at TWDB's own reports page (linked on each well card) for that detail in the meantime.</p>
     <div class="source-tag">Sources: services.twdb.texas.gov (TWDB wells, GCD boundaries) · waterdatafortexas.org (groundwater monitoring) · StratMap/TxGIO (parcels) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback. Water rights professional? <a href="/professional.html" style="color:var(--river);">Tell us what you need</a>.</p>
@@ -229,7 +244,7 @@ function renderGcd(gcd){
 
 function renderGcdRestrictions(districtName, restrictions){
   if(!restrictions){
-    return `<p class="map-hint">This district's own spacing, production-limit, and permitting rules haven't been pulled from its management plan yet — ${districtName} isn't in the pilot batch covered so far. See the district's own site for its current rules.</p>`;
+    return `<p class="map-hint">No rules on file yet for ${districtName}. Most districts' spacing, production-limit, and permitting rules have been pulled from their management plans, but a handful haven't — either because the district publishes its plan as an oversized scanned document our extraction can't read yet, or because it isn't a Chapter 36 groundwater district and has no management plan at all (the Edwards Aquifer Authority and the two subsidence districts). Check the district's own site for its current rules.</p>`;
   }
   const rows = [
     ['Spacing rules', restrictions.spacingRules],
@@ -450,6 +465,120 @@ async function handlePointSelected(lat, lng){
 
   setStatus('Done — pulled live from TWDB and StratMap.');
 }
+
+// ---------- District browse map ----------
+// Separate from the point-search map above: this one shows every district
+// statewide so you can explore by district rather than by address. Loaded
+// on demand rather than on page load — the boundary set is ~71KB even
+// generalized, and most visitors come here to search a specific address.
+const DISTRICT_COLORS = [
+  '#2b6777', '#a8643f', '#3f6b4a', '#b8863a', '#4a6fa5', '#7d5a7d',
+  '#5f8a6a', '#c17f59', '#4e7d8c', '#8a7145', '#6b6f9e', '#94664a',
+];
+
+let districtMap = null;
+let districtLayers = [];
+let selectedDistrictLayer = null;
+
+function styleForDistrict(index, hasRestrictions){
+  const color = DISTRICT_COLORS[index % DISTRICT_COLORS.length];
+  return {
+    color,
+    weight: hasRestrictions ? 1.5 : 1.5,
+    fillColor: color,
+    fillOpacity: hasRestrictions ? 0.42 : 0.12,
+    // Districts with no rules on file read as hollow/dashed, so the map
+    // shows data coverage honestly instead of implying we have rules
+    // everywhere we have a boundary.
+    dashArray: hasRestrictions ? null : '5,4',
+  };
+}
+
+async function showDistrictDetail(districtName, hasRestrictions){
+  const detail = document.getElementById('districtDetail');
+  detail.innerHTML = `<p class="map-hint">Loading ${districtName}…</p>`;
+  try {
+    const res = await fetch(`/api/texas/gcd/district/${encodeURIComponent(districtName)}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+    detail.innerHTML = `
+      <div class="note info"><strong>${districtName}</strong></div>
+      ${renderGcdRestrictions(districtName, data.restrictions)}
+    `;
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch(err){
+    detail.innerHTML = `<p class="map-hint" style="color:var(--clay);">${serverErrorMessage(err)}</p>`;
+  }
+}
+
+function selectDistrictLayer(layer, districtName, hasRestrictions){
+  if(selectedDistrictLayer && selectedDistrictLayer !== layer){
+    selectedDistrictLayer.setStyle(selectedDistrictLayer._baseStyle);
+  }
+  selectedDistrictLayer = layer;
+  layer.setStyle({ weight: 3.5, color: '#1e2a24', fillOpacity: 0.6, dashArray: null });
+  layer.bringToFront();
+  districtMap.fitBounds(layer.getBounds(), { padding: [24, 24] });
+  showDistrictDetail(districtName, hasRestrictions);
+}
+
+async function loadDistrictMap(){
+  const btn = document.getElementById('loadDistrictMapBtn');
+  const status = document.getElementById('districtMapStatus');
+  btn.disabled = true;
+  btn.textContent = 'Loading districts…';
+  status.textContent = '';
+
+  try {
+    const res = await fetch('/api/texas/gcd/all');
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+
+    document.getElementById('districtMapWrap').style.display = 'block';
+    // Let the browser lay the container out before Leaflet measures it —
+    // creating a map inside a just-unhidden element makes it read a 0x0
+    // size, and the view then drifts when the real size arrives (this
+    // showed up as the map landing on the upper Midwest instead of Texas).
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    if(!districtMap){
+      districtMap = L.map('districtMap');
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
+      }).addTo(districtMap);
+    }
+    districtMap.invalidateSize();
+
+    districtLayers.forEach(l => districtMap.removeLayer(l));
+    districtLayers = [];
+
+    data.districts.forEach((d, i) => {
+      const base = styleForDistrict(i, d.hasRestrictions);
+      const poly = L.polygon(ringsToLatLngs(d.rings), base).addTo(districtMap);
+      poly._baseStyle = base;
+      poly.bindTooltip(`${d.districtName}${d.hasRestrictions ? '' : ' — no rules on file yet'}`, { sticky: true });
+      poly.on('click', () => selectDistrictLayer(poly, d.districtName, d.hasRestrictions));
+      districtLayers.push(poly);
+    });
+
+    // Frame to the districts themselves rather than a hardcoded center, so
+    // the view is correct regardless of container sizing quirks.
+    if(districtLayers.length > 0){
+      districtMap.fitBounds(L.featureGroup(districtLayers).getBounds(), { padding: [12, 12] });
+    }
+
+    const withRules = data.districts.filter(d => d.hasRestrictions).length;
+    status.textContent = `${data.districts.length} districts shown — ${withRules} have their actual rules on file. Click any district for details.`;
+    btn.style.display = 'none';
+  } catch(err){
+    status.textContent = serverErrorMessage(err);
+    status.style.color = 'var(--clay)';
+    btn.disabled = false;
+    btn.textContent = 'Show the district map';
+  }
+}
+
+document.getElementById('loadDistrictMapBtn').addEventListener('click', loadDistrictMap);
 
 // ---------- Geocoding (JSONP — Census doesn't support direct CORS fetch)
 // ---------- Runs client-side; doesn't need to go through the backend. ----------

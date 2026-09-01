@@ -51,4 +51,12 @@ async function upsertRestrictions(row) {
   );
 }
 
-module.exports = { getRestrictionsByDistrictName, upsertRestrictions };
+// Just the names of districts we actually hold restriction data for — lets
+// the district map show at a glance which ones have rules on file without
+// shipping every district's full text to the browser.
+async function listDistrictNamesWithRestrictions() {
+  const result = await query('SELECT district_name FROM gcd_restrictions');
+  return result.rows.map((r) => r.district_name);
+}
+
+module.exports = { getRestrictionsByDistrictName, upsertRestrictions, listDistrictNamesWithRestrictions };

@@ -1,8 +1,8 @@
 const express = require('express');
 const { fetchParcelAtPoint } = require('../services/texas/parcels');
-const { findGcdAtPoint } = require('../services/texas/gcd');
+const { findGcdAtPoint, fetchAllDistricts, STATEWIDE_PRODUCTION_FEE_CAP } = require('../services/texas/gcd');
 const { findNearbyWells } = require('../services/texas/wells');
-const { getRestrictionsByDistrictName } = require('../services/texas/gcdRestrictions');
+const { getRestrictionsByDistrictName, listDistrictNamesWithRestrictions } = require('../services/texas/gcdRestrictions');
 const { findNearbyMonitoringWells } = require('../services/texas/monitoringWells');
 
 const router = express.Router();
@@ -43,6 +43,38 @@ router.get('/gcd', async (req, res) => {
       result.restrictions = await getRestrictionsByDistrictName(result.districtName);
     }
     res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// GET /api/texas/gcd/all
+// Every groundwater district boundary statewide, generalized for map
+// display, flagged with whether we hold its restriction rules. Powers the
+// browse-the-districts map (as opposed to the point lookup above).
+router.get('/gcd/all', async (req, res) => {
+  try {
+    const [districts, withRestrictions] = await Promise.all([
+      fetchAllDistricts(),
+      listDistrictNamesWithRestrictions().catch(() => []),
+    ]);
+    const haveRules = new Set(withRestrictions);
+    res.json({
+      districts: districts.map((d) => ({ ...d, hasRestrictions: haveRules.has(d.districtName) })),
+      statewideProductionFeeCap: STATEWIDE_PRODUCTION_FEE_CAP,
+    });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// GET /api/texas/gcd/district/:name
+// One district's restriction rules, by its exact DistrictName — used when
+// someone clicks a district on the map.
+router.get('/gcd/district/:name', async (req, res) => {
+  try {
+    const restrictions = await getRestrictionsByDistrictName(req.params.name);
+    res.json({ districtName: req.params.name, restrictions, statewideProductionFeeCap: STATEWIDE_PRODUCTION_FEE_CAP });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
