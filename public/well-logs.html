@@ -358,6 +358,23 @@ async function runSearch(lat, lon, radius){
     // Texas returns depth-capable results; New Mexico never does.
     if(data.state === 'TX') await attachDepths(data);
     renderResults(data, lat, lon);
+
+    // Start preparing the first scan of each well now, while these results
+    // are being read. Opening one cold takes a while on a small server, so
+    // the head start is often the difference between a wait and none.
+    if(data.state === 'NM'){
+      const urls = data.wells
+        .map(w => w.documents && w.documents[0] && w.documents[0].fileUrl)
+        .filter(Boolean)
+        .slice(0, 12);
+      if(urls.length){
+        fetch('/api/well-logs/prewarm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls })
+        }).catch(() => { /* purely an optimisation; failure changes nothing */ });
+      }
+    }
     setStatus('');
   } catch(err){
     setStatus(serverErrorMessage(err), true);

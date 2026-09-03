@@ -158,6 +158,54 @@ async function ensureTiles(sourceUrl) {
   return job;
 }
 
+// Warms the cache for documents a reader is likely to open next.
+//
+// Decoding one of these scans is the floor on how fast a first open can be
+// — measured at 2.7s of a 4.0s build locally, and the whole build runs
+// roughly 29x slower on a small instance. Tile size and read strategy were
+// both tried and neither helps (1024px tiles and sequentialRead are each
+// SLOWER). So rather than make the build faster, this starts it earlier:
+// when a search returns wells, their first document begins building while
+// the reader is still looking at the results.
+//
+// Strictly serial and capped. On a constrained instance, firing off a dozen
+// concurrent builds would starve the request actually being waited on.
+const prewarmQueue = [];
+let prewarmRunning = false;
+const MAX_PREWARM_QUEUE = 12;
+
+async function drainPrewarm() {
+  if (prewarmRunning) return;
+  prewarmRunning = true;
+  try {
+    while (prewarmQueue.length) {
+      const url = prewarmQueue.shift();
+      if (tileStatus(url) !== 'absent') continue;
+      try {
+        await ensureTiles(url);
+      } catch {
+        // A prewarm failure is not worth surfacing: the reader hasn't asked
+        // for this document yet, and a real request will report properly.
+      }
+    }
+  } finally {
+    prewarmRunning = false;
+  }
+}
+
+function queuePrewarm(urls) {
+  let queued = 0;
+  for (const url of urls) {
+    if (prewarmQueue.length >= MAX_PREWARM_QUEUE) break;
+    if (!isAllowed(url) || tileStatus(url) !== 'absent') continue;
+    if (prewarmQueue.includes(url)) continue;
+    prewarmQueue.push(url);
+    queued += 1;
+  }
+  if (queued) drainPrewarm();
+  return queued;
+}
+
 // Resolves one tile path inside a document's pyramid, refusing anything
 // that tries to climb out of the cache directory.
 function tilePath(key, rest) {
@@ -167,4 +215,4 @@ function tilePath(key, rest) {
   return fs.existsSync(target) ? target : null;
 }
 
-module.exports = { ensureTiles, tileStatus, tilePath, isAllowed, keyFor, CACHE_DIR };
+module.exports = { ensureTiles, tileStatus, queuePrewarm, tilePath, isAllowed, keyFor, CACHE_DIR };

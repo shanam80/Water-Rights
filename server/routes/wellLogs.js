@@ -2,7 +2,7 @@ const express = require('express');
 const texas = require('../services/wellLogs/texas');
 const newMexico = require('../services/wellLogs/newMexico');
 const { getDepthsForApis } = require('../services/wellLogs/inventory');
-const { ensureTiles, tileStatus, tilePath, isAllowed } = require('../services/wellLogs/documentTiles');
+const { ensureTiles, tileStatus, queuePrewarm, tilePath, isAllowed } = require('../services/wellLogs/documentTiles');
 const fs = require('fs');
 
 const router = express.Router();
@@ -100,6 +100,16 @@ router.get('/document', async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
+});
+
+// POST /api/well-logs/prewarm  { urls: [...] }
+// Starts building scans the reader is likely to open next, while they're
+// still reading the results. Fire-and-forget: it never blocks, and the
+// answer is only how many were queued.
+router.post('/prewarm', (req, res) => {
+  const urls = (req.body && req.body.urls) || [];
+  if (!Array.isArray(urls)) return res.status(400).json({ error: 'Body must be { urls: [...] }.' });
+  res.json({ queued: queuePrewarm(urls.slice(0, 12)) });
 });
 
 // GET /api/well-logs/document/:key/:level/:tile
