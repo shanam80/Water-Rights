@@ -79,6 +79,8 @@
   .depth-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;}
   .depth-row input[type=range]{flex:1;min-width:200px;accent-color:var(--river);}
   .depth-row input[type=number]{width:110px;}
+  .depth-box.depth-inactive{opacity:.72;}
+  .depth-box.depth-inactive input{cursor:not-allowed;}
   .depth-note{font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.45;}
   .checkrow{display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:13px;color:var(--ink-soft);}
   .checkrow input{margin-top:2px;}
@@ -148,10 +150,6 @@
           <label for="address">Street address</label>
           <input type="text" id="address" placeholder="e.g. 100 N Main St, Monahans" autocomplete="off">
         </div>
-        <div class="field" style="flex:0 0 140px;min-width:120px;">
-          <label for="radiusA">Radius (miles)</label>
-          <input type="number" id="radiusA" value="1" min="0.1" step="0.1">
-        </div>
         <button type="submit" id="findBtn">Find</button>
       </form>
       <p class="map-hint" id="addressHint">Include the city — the state is set by the switcher above.</p>
@@ -204,6 +202,8 @@
 <script>
 // ---------- State ----------
 let currentState = 'TX';
+// radius.js reads this to cap New Mexico's radius, since NM probes each well.
+Object.defineProperty(window, 'currentState', { get: () => currentState });
 let lastResult = null;
 let map = null, marker = null, wellLayer = null;
 
@@ -249,9 +249,6 @@ document.getElementById('switcher').addEventListener('click', (e) => {
   const info = STATE_INFO[currentState];
   document.getElementById('address').placeholder = info.placeholder;
   document.getElementById('addressHint').textContent = info.hint;
-  const r = document.getElementById('radiusA');
-  r.max = info.maxRadius;
-  if(Number(r.value) > info.maxRadius) r.value = info.maxRadius;
 
   // Clear results: they belong to the other state's data source.
   document.getElementById('resultsPanel').style.display = 'none';
@@ -326,7 +323,7 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
   try {
     const info = STATE_INFO[currentState];
     const point = await geocode(address, info.label);
-    await runSearch(point.lat, point.lon, Number(document.getElementById('radiusA').value) || 1);
+    await runSearch(point.lat, point.lon);
   } catch(err){
     setStatus(serverErrorMessage(err), true);
   } finally {
@@ -337,7 +334,7 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
 // ---------- Search ----------
 async function runSearch(lat, lon, radius){
   const info = STATE_INFO[currentState];
-  radius = Math.min(radius || Number(document.getElementById('radiusA').value) || 1, info.maxRadius);
+  radius = Math.min(radius || (window.getSearchRadius ? window.getSearchRadius() : 1), info.maxRadius);
   setStatus(currentState === 'NM'
     ? 'Checking each well in the radius for logs — this takes a moment…'
     : 'Searching for wells with logs…');
@@ -445,10 +442,16 @@ function renderResults(data, lat, lon){
 
   const depthBox = document.getElementById('depthBox');
   const showDepth = hasDepthData(data);
-  // Hidden whenever there's nothing to run it on — always for New Mexico,
-  // which publishes no log depths at all, and for Texas searches where no
-  // well in range has a depth on record.
-  depthBox.style.display = showDepth ? 'block' : 'none';
+  // Texas always shows the control so it's discoverable, disabled with the
+  // reason when this particular search has no depths. New Mexico hides it
+  // entirely — NMOCD publishes no log depths at all, so it would be dead
+  // every time rather than only sometimes.
+  depthBox.style.display = data.supportsDepth ? 'block' : 'none';
+  depthBox.classList.toggle('depth-inactive', !showDepth);
+  ['depthRange','depthInput','showUnknown'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.disabled = !showDepth;
+  });
 
   const line = currentLine();
   const visible = data.wells.filter(w => {
@@ -466,7 +469,12 @@ function renderResults(data, lat, lon){
   }
   document.getElementById('resultsHint').textContent = hint;
 
-  if(showDepth){
+  if(data.supportsDepth && !showDepth){
+    document.getElementById('depthCoverage').textContent =
+      'No start depth is on record for any well in this search, so there is nothing to filter on here. ' +
+      "The Railroad Commission's map layer doesn't publish log depths at all — they appear only in its monthly log inventories, " +
+      'which cover roughly the last year of newly scanned logs. Most wells on the map predate that window.';
+  } else if(showDepth){
     const known = data.wells.filter(w => w.topLogIntervalFt).length;
     document.getElementById('depthCoverage').textContent =
       `Start depth is on record for ${known} of ${data.wells.length} well${data.wells.length === 1 ? '' : 's'} here. ` +
@@ -633,6 +641,7 @@ function renderMap(wells, data, lat, lon, line){
   setTimeout(() => map.invalidateSize(), 60);
 }
 </script>
+<script src="/radius.js"></script>
 <script src="/coords.js"></script>
 </body>
 </html>

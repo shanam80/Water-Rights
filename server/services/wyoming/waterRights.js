@@ -67,13 +67,13 @@ function translateFeature(feature, kind, targetLat, targetLon) {
   };
 }
 
-async function queryLayer(layerId, kind, lat, lon) {
+async function queryLayer(layerId, kind, lat, lon, radiusMeters = SEARCH_RADIUS_METERS) {
   const params = new URLSearchParams({
     geometry: `${lon},${lat}`,
     geometryType: 'esriGeometryPoint',
     inSR: '4326',
     spatialRel: 'esriSpatialRelIntersects',
-    distance: String(SEARCH_RADIUS_METERS),
+    distance: String(radiusMeters),
     units: 'esriSRUnit_Meter',
     outFields: '*',
     returnGeometry: 'false',
@@ -87,14 +87,15 @@ async function queryLayer(layerId, kind, lat, lon) {
   return (data.features || []).map((f) => translateFeature(f, kind, lat, lon));
 }
 
-async function findNearbyGroundwaterRights(lat, lon) {
-  const results = await Promise.all(LAYERS.map((l) => queryLayer(l.id, l.kind, lat, lon)));
+async function findNearbyGroundwaterRights(lat, lon, radiusMiles = null) {
+  const radiusMeters = radiusMiles ? Math.round(radiusMiles * 1609.34) : SEARCH_RADIUS_METERS;
+  const results = await Promise.all(LAYERS.map((l) => queryLayer(l.id, l.kind, lat, lon, radiusMeters)));
   const rights = results
     .flat()
     .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity))
     .slice(0, MAX_RESULTS);
 
-  return { rights, searchRadiusMiles: SEARCH_RADIUS_METERS / 1609.34 };
+  return { rights, searchRadiusMiles: radiusMeters / 1609.34 };
 }
 
 // Direct lookup by WR_Number — confirmed live 2026-08-28. Checks both

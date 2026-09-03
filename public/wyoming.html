@@ -267,7 +267,7 @@ async function handlePointSelected(lat, lng){
   if(rightsMarkersLayer){ leafletMap.removeLayer(rightsMarkersLayer); rightsMarkersLayer = null; }
 
   try {
-    const res = await fetch(`/api/wyoming/water-rights?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/wyoming/water-rights?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
 
@@ -386,6 +386,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 });
 </script>
 
+<script src="/radius.js"></script>
 <script src="/coords.js"></script>
 </body>
 </html>

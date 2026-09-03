@@ -50,9 +50,11 @@ router.get('/water-rights', async (req, res) => {
     parcel = { error: err.message };
   }
 
+  // Optional caller radius; omitted means each state's own default.
+  const radiusMiles = req.query.radius ? Math.min(Math.max(Number(req.query.radius), 0.1), 25) : null;
   try {
     const parcelRings = parcel && !parcel.error && !parcel.notFound ? parcel.rings : null;
-    const result = await searchWaterRightsNearPoint(point.lat, point.lon, { parcelRings });
+    const result = await searchWaterRightsNearPoint(point.lat, point.lon, { parcelRings, radiusMiles });
     res.json({ parcel, ...result });
   } catch (err) {
     res.status(502).json({ error: err.message });

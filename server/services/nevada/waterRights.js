@@ -30,14 +30,17 @@ async function queryUrl(url, params) {
 // Montana), plus places of use whose polygon actually contains this exact
 // point (Esri's own intersects test, same as Montana — no client-side
 // polygon math needed).
-async function searchWaterRightsNearPoint(lat, lon, { parcelRings = null } = {}) {
+async function searchWaterRightsNearPoint(lat, lon, { parcelRings = null, radiusMiles = null } = {}) {
+  // Caller-supplied radius wins; the constant stays the default so an
+  // omitted radius behaves exactly as before.
+  const radiusMeters = radiusMiles ? Math.round(radiusMiles * 1609.34) : SEARCH_RADIUS_METERS;
   const [diversionFeatures, placeOfUseFeatures] = await Promise.all([
     queryUrl(DIVERSIONS_URL, {
       geometry: `${lon},${lat}`,
       geometryType: 'esriGeometryPoint',
       inSR: '4326',
       spatialRel: 'esriSpatialRelIntersects',
-      distance: String(SEARCH_RADIUS_METERS),
+      distance: String(radiusMeters),
       units: 'esriSRUnit_Meter',
       outFields: '*',
       returnGeometry: 'true',
@@ -87,7 +90,7 @@ async function searchWaterRightsNearPoint(lat, lon, { parcelRings = null } = {})
     nearbyRights,
     placesOfUse,
     fetchedCount: diversionFeatures.length,
-    searchRadiusMiles: SEARCH_RADIUS_METERS / 1609.34,
+    searchRadiusMiles: radiusMeters / 1609.34,
   };
 }
 

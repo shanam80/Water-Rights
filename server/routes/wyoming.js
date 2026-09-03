@@ -21,8 +21,10 @@ function requireLatLon(req, res) {
 router.get('/water-rights', async (req, res) => {
   const point = requireLatLon(req, res);
   if (!point) return;
+  // Optional caller radius; omitted means each state's own default.
+  const radiusMiles = req.query.radius ? Math.min(Math.max(Number(req.query.radius), 0.1), 25) : null;
   try {
-    const result = await findNearbyGroundwaterRights(point.lat, point.lon);
+    const result = await findNearbyGroundwaterRights(point.lat, point.lon, radiusMiles);
     res.json(result);
   } catch (err) {
     res.status(502).json({ error: err.message });

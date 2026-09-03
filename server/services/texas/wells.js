@@ -37,13 +37,14 @@ function translateWellFeature(feature, targetLat, targetLon) {
   };
 }
 
-async function findNearbyWells(lat, lon) {
+async function findNearbyWells(lat, lon, radiusMiles = null) {
+  const radiusMeters = radiusMiles ? Math.round(radiusMiles * 1609.34) : SEARCH_RADIUS_METERS;
   const params = new URLSearchParams({
     geometry: `${lon},${lat}`,
     geometryType: 'esriGeometryPoint',
     inSR: '4326',
     spatialRel: 'esriSpatialRelIntersects',
-    distance: String(SEARCH_RADIUS_METERS),
+    distance: String(radiusMeters),
     units: 'esriSRUnit_Meter',
     outFields: '*',
     returnGeometry: 'false',
@@ -61,7 +62,7 @@ async function findNearbyWells(lat, lon) {
     .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity))
     .slice(0, MAX_RESULTS);
 
-  return { wells, searchRadiusMiles: SEARCH_RADIUS_METERS / 1609.34, hasFullDetail: false };
+  return { wells, searchRadiusMiles: radiusMeters / 1609.34, hasFullDetail: false };
 }
 
 module.exports = { findNearbyWells };

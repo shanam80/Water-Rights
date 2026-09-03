@@ -96,13 +96,6 @@
     const search = window.handlePointSelected || window.runSearch;
     if (typeof search !== 'function') return;
 
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = mapBtn.className.replace(/\bactive\b/, '').trim();
-    btn.dataset.method = 'coords';
-    btn.textContent = 'Coordinates';
-    mapBtn.insertAdjacentElement('afterend', btn);
-
     const panel = document.createElement('div');
     panel.className = 'method-panel';
     panel.id = 'method-coords';
@@ -117,6 +110,26 @@
       <p class="map-hint" id="coordsHint">Paste straight from Google Maps — right-click a spot there and choose the coordinates to copy them. Degrees/minutes/seconds and full map links work too.</p>
     `;
     mapPanel.insertAdjacentElement('afterend', panel);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = mapBtn.className.replace(/\bactive\b/, '').trim();
+    btn.dataset.method = 'coords';
+    btn.textContent = 'Coordinates';
+    mapBtn.insertAdjacentElement('afterend', btn);
+
+    // The page wires its toggle with querySelectorAll(...).forEach at load,
+    // so a button added afterwards gets no listener from it and the panel
+    // would never open. This button therefore does its own switching, using
+    // the same classes the page's own handler uses.
+    btn.addEventListener('click', () => {
+      toggle.querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.method-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      panel.classList.add('active');
+      panel.querySelector('#coordsInput').focus();
+    });
+
 
     panel.querySelector('#coordsForm').addEventListener('submit', (e) => {
       e.preventDefault();

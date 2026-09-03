@@ -399,7 +399,7 @@ async function handlePointSelected(lat, lng){
 
   // Parcel
   try {
-    const res = await fetch(`/api/texas/parcel?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/texas/parcel?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const parcel = await res.json();
     document.getElementById('parcelInfo').innerHTML = renderParcelInfo(res.ok ? parcel : { error: parcel.error || `Server responded with status ${res.status}` });
     const parcelRings = res.ok && !parcel.notFound ? parcel.rings : null;
@@ -415,7 +415,7 @@ async function handlePointSelected(lat, lng){
 
   // GCD
   try {
-    const res = await fetch(`/api/texas/gcd?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/texas/gcd?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const gcd = await res.json();
     if(!res.ok) throw new Error(gcd.error || `Server responded with status ${res.status}`);
     gcdContainer.innerHTML = renderGcd(gcd);
@@ -432,7 +432,7 @@ async function handlePointSelected(lat, lng){
   wellsContainer.innerHTML = '<p class="map-hint">Searching nearby wells…</p>';
   wellsPanel.style.display = 'block';
   try {
-    const res = await fetch(`/api/texas/wells/nearby?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/texas/wells/nearby?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
     if(data.wells.length === 0){
@@ -463,7 +463,7 @@ async function handlePointSelected(lat, lng){
   monitoringContainer.innerHTML = '<p class="map-hint">Searching nearby groundwater monitoring wells…</p>';
   monitoringPanel.style.display = 'block';
   try {
-    const res = await fetch(`/api/texas/monitoring-wells/nearby?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/texas/monitoring-wells/nearby?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
     if(data.wells.length === 0){
@@ -681,6 +681,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 });
 </script>
 
+<script src="/radius.js"></script>
 <script src="/coords.js"></script>
 </body>
 </html>

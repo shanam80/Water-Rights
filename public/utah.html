@@ -415,7 +415,7 @@ async function handlePointSelected(lat, lng){
   parcelInfo.innerHTML = '<p class="map-hint">Looking up parcel…</p>';
   parcelPanel.style.display = 'block';
   try {
-    const res = await fetch(`/api/utah/parcel?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/utah/parcel?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const parcel = await res.json();
     parcelInfo.innerHTML = renderParcelInfo(res.ok ? parcel : { error: parcel.error || `Server responded with status ${res.status}` });
     if(res.ok && !parcel.notFound && parcel.rings && parcel.rings.length > 0){
@@ -426,12 +426,23 @@ async function handlePointSelected(lat, lng){
   }
 
   try {
-    const res = await fetch(`/api/utah/water-rights?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/utah/water-rights?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
 
+    // Utah's own endpoint refuses bounding boxes beyond about 1.4 miles,
+    // answering "Zoom in to view points of diversion" with an empty list.
+    // The request is narrowed to what it will serve, and said out loud
+    // rather than quietly returning fewer results than asked for.
+    const radiusNote = document.getElementById('radiusNote');
+    if(radiusNote){
+      radiusNote.textContent = data.radiusWasCapped
+        ? `Utah only serves about ${data.searchRadiusMiles.toFixed(1)} miles per search — your radius was narrowed to that.`
+        : 'Applies to every search method below.';
+    }
+
     if(data.rights.length === 0){
-      cardsContainer.innerHTML = `<p class="map-hint">No water rights points of diversion on file within about ${data.searchRadiusMiles} miles of this point — a genuine result, not a sign of a broken connection.</p>`;
+      cardsContainer.innerHTML = `<p class="map-hint">No water rights points of diversion on file within about ${data.searchRadiusMiles.toFixed(1)} miles of this point — a genuine result, not a sign of a broken connection.</p>`;
       cardsHint.textContent = '';
     } else {
       cardsContainer.innerHTML = data.rights.map(buildWaterRightCard).join('');
@@ -460,7 +471,7 @@ async function handlePointSelected(lat, lng){
   wellsContainer.innerHTML = '<p class="map-hint">Searching nearby wells…</p>';
   wellsPanel.style.display = 'block';
   try {
-    const res = await fetch(`/api/utah/wells/nearby?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/utah/wells/nearby?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
 
@@ -603,6 +614,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 });
 </script>
 
+<script src="/radius.js"></script>
 <script src="/coords.js"></script>
 </body>
 </html>

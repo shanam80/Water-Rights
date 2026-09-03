@@ -394,7 +394,7 @@ async function handlePointSelected(lat, lng){
   if(parcelPolygonLayer){ leafletMap.removeLayer(parcelPolygonLayer); parcelPolygonLayer = null; }
 
   try {
-    const res = await fetch(`/api/nevada/water-rights?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/nevada/water-rights?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
 
@@ -441,7 +441,7 @@ async function handlePointSelected(lat, lng){
   wellsContainer.innerHTML = '<p class="map-hint">Searching nearby wells…</p>';
   wellsPanel.style.display = 'block';
   try {
-    const res = await fetch(`/api/nevada/wells/nearby?lat=${lat}&lon=${lng}`);
+    const res = await fetch(`/api/nevada/wells/nearby?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
     if(data.wells.length === 0){
@@ -537,6 +537,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 });
 </script>
 
+<script src="/radius.js"></script>
 <script src="/coords.js"></script>
 </body>
 </html>

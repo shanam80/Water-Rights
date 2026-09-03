@@ -73,8 +73,20 @@ function translatePOD(attrs, targetLat, targetLon) {
   };
 }
 
-async function findNearbyWaterRights(lat, lon) {
-  const buffer = SEARCH_BUFFER_DEG;
+async function findNearbyWaterRights(lat, lon, radiusMiles = null) {
+  // Utah's endpoint takes a bounding box in degrees, so a mile radius is
+  // converted here (~69 miles per degree of latitude).
+  //
+  // It also refuses to serve a box larger than about this default, replying
+  // "Zoom in to view points of diversion." with an empty list rather than an
+  // error — verified live. So a bigger radius doesn't return more, it
+  // returns NOTHING. The radius is therefore capped at the largest area the
+  // state will actually answer, and the effective value is reported back so
+  // the page can say the request was narrowed rather than silently ignoring
+  // what the user typed.
+  const requestedBuffer = radiusMiles ? Math.max(radiusMiles / 69, 0.001) : SEARCH_BUFFER_DEG;
+  const buffer = Math.min(requestedBuffer, SEARCH_BUFFER_DEG);
+  const radiusWasCapped = requestedBuffer > SEARCH_BUFFER_DEG;
   const params = new URLSearchParams({
     maxLat: lat + buffer,
     minLat: lat - buffer,
@@ -100,7 +112,8 @@ async function findNearbyWaterRights(lat, lon) {
     .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity))
     .slice(0, MAX_RESULTS);
 
-  return { rights, searchRadiusMiles: 1.3, serverMessage: data.message || null };
+  return { rights, searchRadiusMiles: buffer * 69,
+    radiusWasCapped, serverMessage: data.message || null };
 }
 
 module.exports = { findNearbyWaterRights };
