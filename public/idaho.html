@@ -212,6 +212,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/basemaps.js"></script>
 <script>
 const addressForm = document.getElementById('addressForm');
 const addressInput = document.getElementById('addressInput');
@@ -344,9 +345,7 @@ let rightsPolygonLayers = [];
 function initMap(){
   if(leafletMap) return;
   leafletMap = L.map('map').setView([44.0, -114.7], 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
-  }).addTo(leafletMap);
+  addBaseLayers(leafletMap, { maxZoom: 18 });
   leafletMap.on('click', (e) => {
     const { lat, lng } = e.latlng;
     handlePointSelected(lat, lng);

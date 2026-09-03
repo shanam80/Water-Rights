@@ -175,3 +175,9 @@ CREATE TABLE IF NOT EXISTS well_log_inventory (
   source_file TEXT,
   ingested_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Format and size of the log document itself. Format decides what happens
+-- when someone clicks: a scan opens in the agency's viewer, LAS curve data
+-- just downloads — so the page says which before the click.
+ALTER TABLE well_log_inventory ADD COLUMN IF NOT EXISTS log_format TEXT;
+ALTER TABLE well_log_inventory ADD COLUMN IF NOT EXISTS image_size TEXT;

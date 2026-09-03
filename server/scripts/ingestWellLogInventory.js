@@ -32,6 +32,8 @@ const COLUMNS = {
   county: 'County Name',
   description: 'Log Description',
   docDate: 'Document Date',
+  imageSize: 'Image Size',
+  imagePath: 'Image path',
 };
 
 async function findInventoryFiles() {
@@ -58,6 +60,14 @@ async function findInventoryFiles() {
 function toDepth(value) {
   const n = Number(String(value ?? '').replace(/[^0-9.]/g, ''));
   return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
+function formatFromPath(path){
+  const ext = String(path || '').toLowerCase().split('.').pop();
+  if (ext === 'tif' || ext === 'tiff') return 'TIFF';
+  if (ext === 'las') return 'LAS';
+  if (ext === 'pdf') return 'PDF';
+  return null;
 }
 
 function clean(value) {
@@ -92,6 +102,10 @@ function parseWorkbook(buffer, sourceFile) {
         countyName: idx.county >= 0 ? clean(raw[idx.county]) : null,
         logDescription: idx.description >= 0 ? clean(raw[idx.description]) : null,
         documentDate: idx.docDate >= 0 ? clean(raw[idx.docDate]) : null,
+        imageSize: idx.imageSize >= 0 ? clean(raw[idx.imageSize]) : null,
+        // Format comes from the stored image's extension — the inventory
+        // has no format column of its own.
+        logFormat: idx.imagePath >= 0 ? formatFromPath(raw[idx.imagePath]) : null,
         sourceFile,
       });
     }

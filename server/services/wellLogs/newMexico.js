@@ -67,6 +67,17 @@ function cleanSpudYear(value) {
   return year;
 }
 
+// The file format decides what actually happens when someone clicks, so it
+// gets said before they do: a scan opens in the agency's viewer, while LAS
+// curve data just lands in the downloads folder.
+function describeFormat(fileNameOrUrl) {
+  const ext = String(fileNameOrUrl || '').toLowerCase().split('.').pop();
+  if (ext === 'tif' || ext === 'tiff') return { code: 'TIFF', label: 'Scanned image', opensInViewer: true };
+  if (ext === 'las') return { code: 'LAS', label: 'Digital data', opensInViewer: false };
+  if (ext === 'pdf') return { code: 'PDF', label: 'PDF document', opensInViewer: true };
+  return { code: ext ? ext.toUpperCase() : 'Unknown', label: 'Unknown format', opensInViewer: false };
+}
+
 function cleanDepth(value) {
   const depth = Number(value);
   return depth > 0 ? depth : null; // 0 means "not recorded", not "at surface"
@@ -81,20 +92,35 @@ async function probeLogCount(api) {
   const cached = probeCache.get(api);
   if (cached) return cached;
 
-  let result = { logCount: 0, logsUrl: url };
+  let result = { logCount: 0, logsUrl: url, documents: [] };
   try {
     const res = await fetchWithTimeout(url, {}, 20000);
     if (res.ok) {
       const html = await res.text();
-      // Every document is referenced TWICE on the page — once as a full
-      // filestore URL and once as a bare filename — so matching raw strings
-      // double-counts (verified: the reference well 30-045-08708 has 3 logs
-      // but yields 6 raw matches). Reducing each match to its basename
-      // before de-duplicating gives the true count; checked against both
-      // known cases, 3 logs and 0 logs.
-      const matches = html.match(/[A-Za-z0-9_\-/.%]+\.(?:tif|tiff|pdf)/gi) || [];
-      const documents = new Set(matches.map((m) => m.toLowerCase().split('/').pop()));
-      result = { logCount: documents.size, logsUrl: url };
+      // Each document sits in its own image_tile block holding a direct
+      // file link plus "(3114 kB - 12/18/2002)". Parsing per tile keeps a
+      // document's size and date attached to the right file, rather than
+      // zipping two separate lists and hoping the order lines up.
+      //
+      // Counting raw filename matches instead would double-count: every
+      // document appears both as the href and as the thumbnail's alt text
+      // (verified — the reference well 30-045-08708 has 3 logs but yields
+      // 6 raw matches).
+      const documents = [];
+      for (const tile of html.split('image_tile').slice(1)) {
+        const href = tile.match(/href="([^"]+\.(?:tif|tiff|pdf|las))"/i);
+        if (!href) continue;
+        const meta = tile.match(/\(\s*([\d,]+)\s*kB\s*-\s*([\d/]+)\s*\)/i);
+        const fileUrl = href[1].replace(/&amp;/g, '&');
+        documents.push({
+          fileUrl,
+          fileName: decodeURIComponent(fileUrl.split('/').pop()),
+          format: describeFormat(fileUrl),
+          sizeKb: meta ? Number(meta[1].replace(/,/g, '')) : null,
+          scanDate: meta ? meta[2] : null,
+        });
+      }
+      result = { logCount: documents.length, logsUrl: url, documents };
     }
   } catch {
     // A failed probe means "unknown", which is reported as zero logs rather
@@ -184,4 +210,4 @@ async function searchWellLogsNearPoint(lat, lon, radiusMiles) {
   return result;
 }
 
-module.exports = { searchWellLogsNearPoint, logsUrlForApi, refIdForApi };
+module.exports = { searchWellLogsNearPoint, logsUrlForApi, refIdForApi, describeFormat };

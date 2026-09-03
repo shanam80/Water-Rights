@@ -54,3 +54,22 @@ const SAVED_SEARCH_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 setInterval(() => {
   checkAllSavedSearches().catch((err) => console.error('Saved-search check run failed:', err.message));
 }, SAVED_SEARCH_CHECK_INTERVAL_MS);
+
+// The Railroad Commission posts a new well-log inventory workbook each
+// month, and it's the only public source for a Texas log's start depth and
+// operator. Refreshing weekly (rather than monthly) just means a new file
+// is picked up soon after it appears, without needing to know the exact
+// publication day. Only the two most recent months are re-read, since older
+// files never change.
+//
+// Same in-process approach as the saved-search check above: no paid cron
+// service, and a missed run costs nothing because the ingest is idempotent.
+const WELL_LOG_INVENTORY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+setInterval(() => {
+  const { execFile } = require('child_process');
+  execFile(process.execPath, [require('path').join(__dirname, 'scripts', 'ingestWellLogInventory.js'), '2'],
+    { timeout: 10 * 60 * 1000 },
+    (err) => {
+      if (err) console.error('Well-log inventory refresh failed:', err.message);
+    });
+}, WELL_LOG_INVENTORY_INTERVAL_MS);

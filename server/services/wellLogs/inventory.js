@@ -13,7 +13,7 @@ async function getDepthsForApis(apis) {
 
   const result = await query(
     `SELECT api, top_log_interval_ft, bottom_total_depth_ft, operator_name,
-            lease_name, field_name, well_number, log_description
+            lease_name, field_name, well_number, log_description, log_format, image_size
        FROM well_log_inventory
       WHERE api = ANY($1::text[])`,
     [unique]
@@ -29,6 +29,8 @@ async function getDepthsForApis(apis) {
       fieldName: row.field_name,
       wellNumber: row.well_number,
       logDescription: row.log_description,
+      logFormat: row.log_format,
+      imageSize: row.image_size,
     };
   }
   return byApi;
@@ -38,8 +40,9 @@ async function upsertInventoryRow(row) {
   await query(
     `INSERT INTO well_log_inventory
        (api, top_log_interval_ft, bottom_total_depth_ft, operator_name, lease_name,
-        field_name, well_number, county_name, log_description, document_date, source_file)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        field_name, well_number, county_name, log_description, document_date, source_file,
+        log_format, image_size)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
      ON CONFLICT (api) DO UPDATE SET
        -- Keep whichever record actually carries a depth: a later scan with
        -- an unpopulated field shouldn't erase a known depth.
@@ -52,11 +55,14 @@ async function upsertInventoryRow(row) {
        county_name = COALESCE(EXCLUDED.county_name, well_log_inventory.county_name),
        log_description = COALESCE(EXCLUDED.log_description, well_log_inventory.log_description),
        document_date = COALESCE(EXCLUDED.document_date, well_log_inventory.document_date),
+       log_format = COALESCE(EXCLUDED.log_format, well_log_inventory.log_format),
+       image_size = COALESCE(EXCLUDED.image_size, well_log_inventory.image_size),
        source_file = EXCLUDED.source_file,
        ingested_at = now()`,
     [
       row.api, row.topLogIntervalFt, row.bottomTotalDepthFt, row.operatorName, row.leaseName,
       row.fieldName, row.wellNumber, row.countyName, row.logDescription, row.documentDate, row.sourceFile,
+      row.logFormat, row.imageSize,
     ]
   );
 }
