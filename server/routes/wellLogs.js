@@ -2,6 +2,8 @@ const express = require('express');
 const texas = require('../services/wellLogs/texas');
 const newMexico = require('../services/wellLogs/newMexico');
 const { getDepthsForApis } = require('../services/wellLogs/inventory');
+const { ensureTiles, tilePath, isAllowed } = require('../services/wellLogs/documentTiles');
+const fs = require('fs');
 
 const router = express.Router();
 
@@ -52,6 +54,48 @@ router.post('/depths', async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
+});
+
+// GET /api/well-logs/document?url=<encoded document url>
+// Returns the zoom-pyramid descriptor for a scanned log, building it on
+// first request. Browsers can't decode these TIFFs at all, so this is what
+// makes them readable in the page instead of downloading to nothing.
+router.get('/document', async (req, res) => {
+  const url = req.query.url;
+  if (!url || !isAllowed(url)) {
+    return res.status(400).json({ error: 'A document URL from a supported state archive is required.' });
+  }
+  try {
+    const { key, dziPath, cached } = await ensureTiles(url);
+    const dzi = fs.readFileSync(dziPath, 'utf8');
+    // The descriptor is XML; the width/height are all the viewer needs.
+    const width = Number((dzi.match(/Width="(\d+)"/) || [])[1]);
+    const height = Number((dzi.match(/Height="(\d+)"/) || [])[1]);
+    if (!width || !height) throw new Error('Could not read the document dimensions.');
+    res.json({
+      key,
+      cached,
+      width,
+      height,
+      tileSize: 512,
+      overlap: 1,
+      format: 'jpeg',
+      tileUrlTemplate: `/api/well-logs/document/${key}/{level}/{x}_{y}.jpeg`,
+      originalUrl: url,
+    });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// GET /api/well-logs/document/:key/:level/:tile
+router.get('/document/:key/:level/:tile', (req, res) => {
+  if (!/^[a-f0-9]{16}$/.test(req.params.key)) return res.status(400).end();
+  const target = tilePath(req.params.key, `${req.params.level}/${req.params.tile}`);
+  if (!target) return res.status(404).end();
+  // These scans were last modified in 2002 — safe to cache hard.
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.sendFile(target);
 });
 
 module.exports = router;

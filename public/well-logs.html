@@ -112,6 +112,7 @@
   .wl-pop-api{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin:2px 0 6px;}
   .wl-pop-fmt{display:inline-block;font-size:11px;background:#eaf1f2;color:var(--river);padding:2px 7px;border-radius:5px;margin-bottom:7px;}
   .wl-pop-thumb{width:100%;max-width:150px;border:1px solid var(--line);border-radius:4px;margin:2px 0 6px;display:block;background:#fff;}
+  .wl-pop-hint{font-size:11px;color:var(--moss);background:#eef4f1;padding:4px 7px;border-radius:5px;margin-bottom:7px;line-height:1.35;}
   .wl-pop-warn{font-size:11px;color:var(--amber);background:#fbf3e4;padding:4px 7px;border-radius:5px;margin-bottom:7px;line-height:1.35;}
   .wl-pop table{border-collapse:collapse;width:100%;margin:0 0 8px;}
   .wl-pop td{padding:3px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
@@ -121,6 +122,16 @@
   .wl-pop-link{display:inline-block;background:var(--river);color:#fff !important;padding:6px 11px;
     border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin-top:2px;}
   .wl-pop-link:hover{background:var(--river-deep);}
+  .log-viewer{position:fixed;inset:0;z-index:11000;background:#12181c;display:flex;flex-direction:column;}
+  .lv-bar{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#1b242a;color:#e8eef0;flex-wrap:wrap;}
+  .lv-title{font-family:'Fraunces',serif;font-size:15px;margin-right:auto;}
+  .lv-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .lv-btn{background:#2b6777;color:#fff !important;border:none;padding:7px 12px;border-radius:6px;
+    font-size:12.5px;font-weight:600;text-decoration:none;cursor:pointer;font-family:'Inter',sans-serif;}
+  .lv-btn:hover{background:#1c4552;}
+  .lv-close{background:#4a5a63;}
+  .lv-canvas{flex:1;background:#12181c;}
+  .lv-status{padding:8px 14px;background:#1b242a;color:#9fb0b8;font-size:12.5px;}
   footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
   footer a{color:var(--river);}
 </style>
@@ -207,6 +218,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
 <script src="/basemaps.js"></script>
 <script>
 // ---------- State ----------
@@ -285,6 +297,84 @@ function initMap(){
   map.on('click', (e) => runSearch(e.latlng.lat, e.latlng.lng));
   setTimeout(() => map.invalidateSize(), 60);
 }
+
+// ---------- Scanned log viewer ----------
+// These logs are continuous strips of ~300 megapixels stored as Group 4
+// TIFF, which no browser can decode — linking the file directly gives a
+// blank page on desktop and "no program available" on a phone. The backend
+// turns each one into a zoom pyramid on first open; this loads only the
+// tiles actually on screen, so it works on a phone.
+let osdViewer = null;
+
+async function openLogViewer(documentUrl, title, officialUrl){
+  const box = document.getElementById('logViewer');
+  const status = document.getElementById('lvStatus');
+  document.getElementById('lvTitle').textContent = title || 'Well log';
+  document.getElementById('lvOriginal').href = documentUrl;
+  const official = document.getElementById('lvOfficial');
+  if(officialUrl){ official.href = officialUrl; official.hidden = false; }
+  else official.hidden = true;
+
+  box.hidden = false;
+  document.body.classList.add('map-is-expanded'); // reuse the scroll lock
+  status.textContent = 'Preparing the scan for viewing — the first open of a document takes a few seconds…';
+
+  try {
+    const res = await fetch('/api/well-logs/document?url=' + encodeURIComponent(documentUrl));
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Could not prepare this document.');
+
+    if(osdViewer){ osdViewer.destroy(); osdViewer = null; }
+    osdViewer = OpenSeadragon({
+      element: document.getElementById('lvCanvas'),
+      prefixUrl: 'https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/',
+      showNavigator: true,
+      navigatorPosition: 'BOTTOM_RIGHT',
+      gestureSettingsTouch: { pinchToZoom: true, flickEnabled: true },
+      tileSources: {
+        width: data.width,
+        height: data.height,
+        tileSize: data.tileSize,
+        overlap: data.overlap,
+        minLevel: 0,
+        getTileUrl: (level, x, y) =>
+          data.tileUrlTemplate.replace('{level}', level).replace('{x}', x).replace('{y}', y),
+      },
+    });
+
+    const mp = ((data.width * data.height) / 1e6).toFixed(0);
+    status.textContent = `${data.width.toLocaleString()} x ${data.height.toLocaleString()} pixels (${mp} megapixels). Pinch or scroll to zoom, drag to pan. ${data.cached ? '' : 'Prepared just now and cached for next time.'}`;
+  } catch(err){
+    status.textContent = serverErrorMessage(err) + ' You can still download the original file above.';
+  }
+}
+
+function closeLogViewer(){
+  document.getElementById('logViewer').hidden = true;
+  document.body.classList.remove('map-is-expanded');
+  if(osdViewer){ osdViewer.destroy(); osdViewer = null; }
+}
+
+// The viewer markup sits at the end of the body, after this script runs, so
+// binding directly here would read null and throw — which previously killed
+// the rest of the script and left the results list empty.
+document.addEventListener('DOMContentLoaded', () => {
+  const closeBtn = document.getElementById('lvClose');
+  if(closeBtn) closeBtn.addEventListener('click', closeLogViewer);
+});
+document.addEventListener('keydown', (e) => {
+  const box = document.getElementById('logViewer');
+  if(e.key === 'Escape' && box && !box.hidden) closeLogViewer();
+});
+
+// Cards and popups render their document links with data attributes rather
+// than inline handlers, so one delegated listener covers both.
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('[data-log-doc]');
+  if(!link) return;
+  e.preventDefault();
+  openLogViewer(link.dataset.logDoc, link.dataset.logTitle, link.dataset.logOfficial || null);
+});
 
 // ---------- Geocoding (JSONP — Census doesn't support direct CORS fetch) ----------
 function geocode(address, stateLabel){
@@ -525,14 +615,14 @@ function renderDocuments(w, state){
       <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Documents on file</div>
       ${w.documents.map(d => `
         <div class="doc-row">
-          ${d.thumbnailUrl ? `<a href="${d.fileUrl}" target="_blank" rel="noopener"><img class="doc-thumb" src="${d.thumbnailUrl}" alt="Preview of ${d.fileName}" loading="lazy"></a>` : ''}
+          ${d.thumbnailUrl ? `<a href="${d.fileUrl}" data-log-doc="${d.fileUrl}" data-log-title="${w.wellName || 'API ' + w.api}" data-log-official="${w.logsUrl || ''}"><img class="doc-thumb" src="${d.thumbnailUrl}" alt="Preview of ${d.fileName}" loading="lazy"></a>` : ''}
           <div class="doc-meta">
-            <a href="${d.fileUrl}" target="_blank" rel="noopener" class="doc-name">${d.format.code} · ${d.sizeKb ? Math.round(d.sizeKb/1024*10)/10 + ' MB' : 'size unknown'}</a>
+            <a href="${d.fileUrl}" data-log-doc="${d.fileUrl}" data-log-title="${w.wellName || 'API ' + w.api}" data-log-official="${w.logsUrl || ''}" class="doc-name">Open in viewer · ${d.format.code}${d.sizeKb ? ' · ' + Math.round(d.sizeKb/1024*10)/10 + ' MB' : ''}</a>
             <div class="doc-sub">${d.scanDate ? 'Scanned ' + d.scanDate : ''}</div>
           </div>
         </div>`).join('')}
-      <div class="note warn" style="margin-top:10px;">
-        <strong>These download rather than open.</strong> New Mexico serves its logs as TIFF images, which no web browser can display — the preview above is the only thing that shows in place. On a phone the file usually won't open at all unless you have a TIFF viewer installed. Opening on a computer, with something like Windows Photos or Preview, is the reliable route.
+      <div class="note info" style="margin-top:10px;">
+        <strong>These open right here.</strong> New Mexico serves its logs as huge TIFF strips — often 300 megapixels — which no browser can display, so they're rendered as a zoomable image instead. Pinch or scroll to zoom; it works on a phone. The original file is still one click away if you want it in your own tools.
       </div>
     </div>`;
   }
@@ -605,8 +695,10 @@ function wellPopupHtml(w, state){
   if(state === 'NM' && w.documents && w.documents.length){
     const f = w.documents[0].format;
     format = `<div class="wl-pop-fmt">${f.label} (${f.code})${w.documents.length > 1 ? ' + ' + (w.documents.length - 1) + ' more' : ''}</div>`
-      + (w.documents[0].thumbnailUrl ? `<img class="wl-pop-thumb" src="${w.documents[0].thumbnailUrl}" alt="Log preview" loading="lazy">` : '')
-      + '<div class="wl-pop-warn">TIFF — downloads rather than opening; a phone may not open it at all.</div>';
+      + (w.documents[0].thumbnailUrl
+          ? `<a href="${w.documents[0].fileUrl}" data-log-doc="${w.documents[0].fileUrl}" data-log-title="${w.wellName || 'API ' + w.api}" data-log-official="${w.logsUrl || ''}"><img class="wl-pop-thumb" src="${w.documents[0].thumbnailUrl}" alt="Log preview" loading="lazy"></a>`
+          : '')
+      + '<div class="wl-pop-hint">Tap the preview to open the log — it zooms in place, no download needed.</div>';
   } else if(w.logFormat){
     const scanned = w.logFormat === 'TIFF' || w.logFormat === 'PDF';
     format = `<div class="wl-pop-fmt">${scanned ? 'Scanned image' : 'Digital data'} (${w.logFormat})</div>`;
@@ -656,5 +748,17 @@ function renderMap(wells, data, lat, lon, line){
 </script>
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
+<div id="logViewer" class="log-viewer" hidden>
+  <div class="lv-bar">
+    <div class="lv-title" id="lvTitle">Well log</div>
+    <div class="lv-actions">
+      <a id="lvOriginal" href="#" target="_blank" rel="noopener" class="lv-btn">Download original</a>
+      <a id="lvOfficial" href="#" target="_blank" rel="noopener" class="lv-btn">View on state site</a>
+      <button type="button" id="lvClose" class="lv-btn lv-close">✕ Close</button>
+    </div>
+  </div>
+  <div id="lvCanvas" class="lv-canvas"></div>
+  <div class="lv-status" id="lvStatus"></div>
+</div>
 </body>
 </html>
