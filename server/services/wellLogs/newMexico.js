@@ -72,7 +72,10 @@ function cleanSpudYear(value) {
 // curve data just lands in the downloads folder.
 function describeFormat(fileNameOrUrl) {
   const ext = String(fileNameOrUrl || '').toLowerCase().split('.').pop();
-  if (ext === 'tif' || ext === 'tiff') return { code: 'TIFF', label: 'Scanned image', opensInViewer: true };
+  // TIFF is a scanned image no browser can display: it downloads, and most
+  // phones have nothing installed that opens it. opensInViewer is false
+  // here for that reason — the label must not promise it opens in place.
+  if (ext === 'tif' || ext === 'tiff') return { code: 'TIFF', label: 'Scanned image (downloads)', opensInViewer: false };
   if (ext === 'las') return { code: 'LAS', label: 'Digital data', opensInViewer: false };
   if (ext === 'pdf') return { code: 'PDF', label: 'PDF document', opensInViewer: true };
   return { code: ext ? ext.toUpperCase() : 'Unknown', label: 'Unknown format', opensInViewer: false };
@@ -112,10 +115,17 @@ async function probeLogCount(api) {
         if (!href) continue;
         const meta = tile.match(/\(\s*([\d,]+)\s*kB\s*-\s*([\d/]+)\s*\)/i);
         const fileUrl = href[1].replace(/&amp;/g, '&');
+        // The document is a TIFF, which no browser renders — it downloads,
+        // and on a phone usually can't be opened at all. The thumbnail
+        // beside it is a plain JPEG, captured here so there's a preview
+        // that actually displays. Its src carries a raw space in the path
+        // ("part 07"), which has to be encoded.
+        const thumb = tile.match(/<img[^>]+src="([^"]+.jpe?g)"/i);
         documents.push({
           fileUrl,
           fileName: decodeURIComponent(fileUrl.split('/').pop()),
           format: describeFormat(fileUrl),
+          thumbnailUrl: thumb ? thumb[1].replace(/&amp;/g, '&').replace(/ /g, '%20') : null,
           sizeKb: meta ? Number(meta[1].replace(/,/g, '')) : null,
           scanDate: meta ? meta[2] : null,
         });

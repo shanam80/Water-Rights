@@ -96,6 +96,13 @@
   .distance-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--river-deep);background:#eaf1f2;padding:2px 8px;border-radius:5px;margin-bottom:10px;}
   .log-link{display:inline-block;margin-top:12px;background:#fff;color:var(--river);border:1px solid var(--river);padding:7px 13px;font-size:12.5px;border-radius:6px;text-decoration:none;font-weight:600;}
   .log-link:hover{background:var(--river);color:#fff;}
+  .doc-row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);}
+  .doc-row:last-of-type{border-bottom:none;}
+  .doc-thumb{width:54px;height:auto;border:1px solid var(--line);border-radius:4px;background:#fff;display:block;}
+  .doc-meta{min-width:0;}
+  .doc-name{font-size:12.5px;font-weight:600;color:var(--river);text-decoration:none;}
+  .doc-name:hover{text-decoration:underline;}
+  .doc-sub{font-size:11.5px;color:var(--ink-soft);}
   .note{margin-top:12px;padding:10px 12px;border-radius:7px;font-size:13px;line-height:1.45;}
   .note.info{background:#eef4f1;color:var(--moss);}
   .note.warn{background:#fbf3e4;color:var(--amber);}
@@ -104,6 +111,8 @@
   .wl-pop strong{font-family:'Fraunces',serif;font-size:14.5px;color:var(--river-deep);}
   .wl-pop-api{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin:2px 0 6px;}
   .wl-pop-fmt{display:inline-block;font-size:11px;background:#eaf1f2;color:var(--river);padding:2px 7px;border-radius:5px;margin-bottom:7px;}
+  .wl-pop-thumb{width:100%;max-width:150px;border:1px solid var(--line);border-radius:4px;margin:2px 0 6px;display:block;background:#fff;}
+  .wl-pop-warn{font-size:11px;color:var(--amber);background:#fbf3e4;padding:4px 7px;border-radius:5px;margin-bottom:7px;line-height:1.35;}
   .wl-pop table{border-collapse:collapse;width:100%;margin:0 0 8px;}
   .wl-pop td{padding:3px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
   .wl-pop td:first-child{color:var(--ink-soft);padding-right:10px;white-space:nowrap;}
@@ -515,13 +524,15 @@ function renderDocuments(w, state){
     return `<div style="margin-top:12px;">
       <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Documents on file</div>
       ${w.documents.map(d => `
-        <div class="row" style="border-bottom:1px dashed var(--line);">
-          <dt><a href="${d.fileUrl}" target="_blank" rel="noopener" style="color:var(--river);">${d.format.code}</a>
-            <span style="color:var(--ink-soft);">— ${d.format.label}</span></dt>
-          <dd>${d.sizeKb ? Math.round(d.sizeKb/1024*10)/10 + ' MB' : ''}${d.scanDate ? ' · ' + d.scanDate : ''}</dd>
+        <div class="doc-row">
+          ${d.thumbnailUrl ? `<a href="${d.fileUrl}" target="_blank" rel="noopener"><img class="doc-thumb" src="${d.thumbnailUrl}" alt="Preview of ${d.fileName}" loading="lazy"></a>` : ''}
+          <div class="doc-meta">
+            <a href="${d.fileUrl}" target="_blank" rel="noopener" class="doc-name">${d.format.code} · ${d.sizeKb ? Math.round(d.sizeKb/1024*10)/10 + ' MB' : 'size unknown'}</a>
+            <div class="doc-sub">${d.scanDate ? 'Scanned ' + d.scanDate : ''}</div>
+          </div>
         </div>`).join('')}
-      <div style="font-size:11.5px;color:var(--ink-soft);margin-top:8px;">
-        Scanned images open in the state's viewer; digital data downloads instead.
+      <div class="note warn" style="margin-top:10px;">
+        <strong>These download rather than open.</strong> New Mexico serves its logs as TIFF images, which no web browser can display — the preview above is the only thing that shows in place. On a phone the file usually won't open at all unless you have a TIFF viewer installed. Opening on a computer, with something like Windows Photos or Preview, is the reliable route.
       </div>
     </div>`;
   }
@@ -529,7 +540,7 @@ function renderDocuments(w, state){
     const scanned = w.logFormat === 'TIFF' || w.logFormat === 'PDF';
     return `<div class="note info" style="margin-top:10px;">
       <strong>${scanned ? 'Scanned image' : 'Digital data'}</strong> (${w.logFormat})${w.imageSize ? ' · ' + w.imageSize : ''}${w.logDescription ? ' · ' + w.logDescription : ''}.
-      ${scanned ? 'Opens in the Commission\'s viewer.' : 'Downloads as a file rather than opening.'}
+      ${scanned ? "Opens in the Commission's own viewer on the linked page — but the underlying file is a TIFF, so downloading it needs a TIFF viewer." : 'Downloads as a file rather than opening.'}
     </div>`;
   }
   return '';
@@ -593,7 +604,9 @@ function wellPopupHtml(w, state){
   let format = '';
   if(state === 'NM' && w.documents && w.documents.length){
     const f = w.documents[0].format;
-    format = `<div class="wl-pop-fmt">${f.label} (${f.code})${w.documents.length > 1 ? ' + ' + (w.documents.length - 1) + ' more' : ''}</div>`;
+    format = `<div class="wl-pop-fmt">${f.label} (${f.code})${w.documents.length > 1 ? ' + ' + (w.documents.length - 1) + ' more' : ''}</div>`
+      + (w.documents[0].thumbnailUrl ? `<img class="wl-pop-thumb" src="${w.documents[0].thumbnailUrl}" alt="Log preview" loading="lazy">` : '')
+      + '<div class="wl-pop-warn">TIFF — downloads rather than opening; a phone may not open it at all.</div>';
   } else if(w.logFormat){
     const scanned = w.logFormat === 'TIFF' || w.logFormat === 'PDF';
     format = `<div class="wl-pop-fmt">${scanned ? 'Scanned image' : 'Digital data'} (${w.logFormat})</div>`;
