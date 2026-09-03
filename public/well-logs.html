@@ -98,6 +98,18 @@
   .note.info{background:#eef4f1;color:var(--moss);}
   .note.warn{background:#fbf3e4;color:var(--amber);}
   .source-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:6px;display:inline-block;margin-top:6px;}
+  .wl-pop{font-family:'Inter',sans-serif;font-size:13px;line-height:1.45;}
+  .wl-pop strong{font-family:'Fraunces',serif;font-size:14.5px;color:var(--river-deep);}
+  .wl-pop-api{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin:2px 0 6px;}
+  .wl-pop-fmt{display:inline-block;font-size:11px;background:#eaf1f2;color:var(--river);padding:2px 7px;border-radius:5px;margin-bottom:7px;}
+  .wl-pop table{border-collapse:collapse;width:100%;margin:0 0 8px;}
+  .wl-pop td{padding:3px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
+  .wl-pop td:first-child{color:var(--ink-soft);padding-right:10px;white-space:nowrap;}
+  .wl-pop td:last-child{text-align:right;font-weight:500;}
+  .wl-pop tr:last-child td{border-bottom:none;}
+  .wl-pop-link{display:inline-block;background:var(--river);color:#fff !important;padding:6px 11px;
+    border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin-top:2px;}
+  .wl-pop-link:hover{background:var(--river-deep);}
   footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
   footer a{color:var(--river);}
 </style>
@@ -556,6 +568,39 @@ function renderCards(wells, data, line, showDepthCards){
   }).join('');
 }
 
+function wellPopupHtml(w, state){
+  const rows = [];
+  if(w.operator) rows.push(['Operator', w.operator]);
+  if(w.leaseName) rows.push(['Lease', w.leaseName]);
+  if(w.wellNumber) rows.push(['Well no.', w.wellNumber]);
+  if(w.fieldName) rows.push(['Field', w.fieldName]);
+  if(w.wellType) rows.push(['Type', w.wellType]);
+  if(w.status) rows.push(['Status', w.status]);
+  if(w.spudYear) rows.push(['Drilled', w.spudYear]);
+  if(w.totalDepthFt) rows.push(['Well depth', fmt(w.totalDepthFt) + ' ft']);
+  if(w.topLogIntervalFt) rows.push(['Log starts at', fmt(w.topLogIntervalFt) + ' ft']);
+  if(w.bottomTotalDepthFt) rows.push(['Log runs to', fmt(w.bottomTotalDepthFt) + ' ft']);
+  rows.push(['Logs on file', w.logCount]);
+
+  let format = '';
+  if(state === 'NM' && w.documents && w.documents.length){
+    const f = w.documents[0].format;
+    format = `<div class="wl-pop-fmt">${f.label} (${f.code})${w.documents.length > 1 ? ' + ' + (w.documents.length - 1) + ' more' : ''}</div>`;
+  } else if(w.logFormat){
+    const scanned = w.logFormat === 'TIFF' || w.logFormat === 'PDF';
+    format = `<div class="wl-pop-fmt">${scanned ? 'Scanned image' : 'Digital data'} (${w.logFormat})</div>`;
+  }
+
+  return `
+    <div class="wl-pop">
+      <strong>${w.wellName || w.operator || 'Well ' + w.api}</strong>
+      <div class="wl-pop-api">API ${w.api}</div>
+      ${format}
+      <table>${rows.map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+      ${w.logsUrl ? `<a href="${w.logsUrl}" target="_blank" rel="noopener" class="wl-pop-link">📄 ${state === 'NM' ? 'Open the log documents' : "Open this well's log list"}</a>` : ''}
+    </div>`;
+}
+
 function renderMap(wells, data, lat, lon, line){
   if(!map) initMap();
   if(!map) return;
@@ -575,7 +620,10 @@ function renderMap(wells, data, lat, lon, line){
       fillOpacity: st.fill === 'transparent' ? 0 : 0.85,
       weight: st.fill === 'transparent' ? 2 : 1.5,
       dashArray: cat === 'unknown' ? '3,3' : null,
-    }).addTo(wellLayer).bindTooltip(`${w.wellName || 'API ' + w.api} — ${w.logCount} log${w.logCount === 1 ? '' : 's'}`);
+    })
+      .addTo(wellLayer)
+      .bindTooltip(`${w.wellName || 'API ' + w.api} — ${w.logCount} log${w.logCount === 1 ? '' : 's'}`)
+      .bindPopup(wellPopupHtml(w, data.state), { maxWidth: 320, minWidth: 240 });
   });
 
   const pts = wells.filter(w => w.latitude != null).map(w => [w.latitude, w.longitude]);
@@ -585,5 +633,6 @@ function renderMap(wells, data, lat, lon, line){
   setTimeout(() => map.invalidateSize(), 60);
 }
 </script>
+<script src="/coords.js"></script>
 </body>
 </html>

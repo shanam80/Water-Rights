@@ -136,6 +136,20 @@
   td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
   tr:hover td{background:#faf7ef;}
   .empty{color:var(--ink-soft);font-size:14px;padding:20px 0;text-align:center;}
+  .cw-pop{font-family:'Inter',sans-serif;font-size:13px;line-height:1.45;}
+  .cw-pop strong{font-family:'Fraunces',serif;font-size:14.5px;color:var(--river-deep);}
+  .cw-pop-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin:2px 0 6px;}
+  .cw-pop-flag{font-size:11.5px;padding:4px 8px;border-radius:5px;margin-bottom:7px;line-height:1.35;}
+  .cw-pop-flag.junior{background:#fbeee7;color:var(--clay);}
+  .cw-pop-flag.senior{background:#eef4f1;color:var(--moss);}
+  .cw-pop table{border-collapse:collapse;width:100%;margin:0 0 8px;}
+  .cw-pop td{padding:3px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
+  .cw-pop td:first-child{color:var(--ink-soft);padding-right:10px;white-space:nowrap;}
+  .cw-pop td:last-child{text-align:right;font-weight:500;}
+  .cw-pop tr:last-child td{border-bottom:none;}
+  .cw-pop-link{display:inline-block;background:var(--river);color:#fff !important;padding:6px 11px;
+    border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;}
+  .cw-pop-link:hover{background:var(--river-deep);}
   footer{
     margin-top:40px;
     padding-top:20px;
@@ -576,6 +590,38 @@ function renderCurtailment(c){
   </div>`;
 }
 
+function coloradoPopupHtml(right, isOnParcel, dist){
+  const rows = [];
+  if(right.delivery || right.structureType) rows.push(['Type', (right.delivery && right.delivery.label) || right.structureType]);
+  if(right.waterSource) rows.push(['Source', right.waterSource]);
+  if(right.priorityDate && right.priorityDate.plain) rows.push(['Priority', right.priorityDate.plain]);
+  if(right.confirmedAmount) rows.push(['Amount', right.confirmedAmount.value + (right.confirmedAmount.unit ? ' ' + right.confirmedAmount.unit : '')]);
+  if(right.decreedUse) rows.push(['Use', right.decreedUse]);
+
+  const c = right.curtailment;
+  let callLine = '';
+  if(c && c.status === 'out-of-priority'){
+    callLine = '<div class="cw-pop-flag junior">Likely curtailed right now — junior to an active call.</div>';
+  } else if(c && c.status === 'in-priority'){
+    callLine = '<div class="cw-pop-flag senior">In priority — senior to the active call.</div>';
+  } else if(c && c.status === 'no-active-call'){
+    callLine = '<div class="cw-pop-flag senior">No active call on this source.</div>';
+  }
+
+  const record = right.wdid
+    ? `<a href="https://dwr.state.co.us/tools/structures/${encodeURIComponent(right.wdid)}" target="_blank" rel="noopener" class="cw-pop-link">📄 Official DWR record</a>`
+    : '';
+
+  return `
+    <div class="cw-pop">
+      <strong>${right.name}</strong>
+      <div class="cw-pop-id">WDID ${right.wdid || '—'} · ${isOnParcel ? 'On this parcel' : dist.toFixed(1) + ' mi away'}</div>
+      ${callLine}
+      <table>${rows.map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+      ${record}
+    </div>`;
+}
+
 function buildCard(right, county, opts){
   opts = opts || {};
   const rows = [];
@@ -741,7 +787,7 @@ function plotRightsOnMap(targetPoint, onParcelRights, nearbyRights){
       fillColor: markerColorForType(right.structureType),
       fillOpacity: 0.9
     })
-    .bindPopup(`<strong>${right.name}</strong><br>WDID ${right.wdid || '—'}<br>${(right.delivery && right.delivery.label) || right.structureType || 'Unknown type'}<br>${isOnParcel ? '<strong>On this parcel</strong>' : dist.toFixed(1) + ' mi away'}`)
+    .bindPopup(coloradoPopupHtml(right, isOnParcel, dist), { maxWidth: 300, minWidth: 230 })
     .addTo(group);
   }
 
@@ -1120,5 +1166,6 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 });
 </script>
 
+<script src="/coords.js"></script>
 </body>
 </html>
