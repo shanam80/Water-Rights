@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Well log — AcreFoot</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --river:#2b6777; --river-deep:#1c4552; --line:#ddd6c4; }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;background:#12181c;color:#e8eef0;font-family:'Inter',sans-serif;display:flex;flex-direction:column;}
+  .bar{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#1b242a;flex-wrap:wrap;}
+  .title{font-family:'Fraunces',serif;font-size:15px;margin-right:auto;}
+  .btn{background:var(--river);color:#fff;border:none;padding:7px 12px;border-radius:6px;
+    font-size:12.5px;font-weight:600;text-decoration:none;cursor:pointer;font-family:'Inter',sans-serif;}
+  .btn:hover{background:var(--river-deep);}
+  .btn.ghost{background:#4a5a63;}
+  #canvas{flex:1;background:#12181c;}
+  .status{padding:8px 14px;background:#1b242a;color:#9fb0b8;font-size:12.5px;line-height:1.4;}
+  .status a{color:#7fc4cf;}
+</style>
+</head>
+<body>
+  <div class="bar">
+    <div class="title" id="title">Well log</div>
+    <a class="btn" id="original" href="#" target="_blank" rel="noopener">Download original</a>
+    <a class="btn ghost" id="official" href="#" target="_blank" rel="noopener" hidden>View on state site</a>
+  </div>
+  <div id="canvas"></div>
+  <div class="status" id="status">Loading…</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
+<script>
+// Standalone viewer, opened in its own tab.
+//
+// These logs are continuous strips — commonly 3,008 x 66,000 pixels, about
+// 200 megapixels, stored as CCITT Group 4 TIFF. No browser decodes TIFF, so
+// linking the file itself gives a blank page on a desktop and "no program
+// available" on a phone. The backend turns each one into a zoom pyramid and
+// this loads only the tiles on screen.
+const params = new URLSearchParams(location.search);
+const documentUrl = params.get('url');
+const title = params.get('title');
+const officialUrl = params.get('official');
+
+const statusEl = document.getElementById('status');
+if(title) document.getElementById('title').textContent = title;
+document.title = (title ? title + ' — ' : '') + 'Well log — AcreFoot';
+document.getElementById('original').href = documentUrl || '#';
+if(officialUrl){
+  const el = document.getElementById('official');
+  el.href = officialUrl;
+  el.hidden = false;
+}
+
+(async () => {
+  if(!documentUrl){
+    statusEl.textContent = 'No document was specified.';
+    return;
+  }
+  statusEl.textContent = 'Preparing the scan — the first time a log is opened this takes a few seconds.';
+  try {
+    const res = await fetch('/api/well-logs/document?url=' + encodeURIComponent(documentUrl));
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Could not prepare this document.');
+
+    const viewer = OpenSeadragon({
+      element: document.getElementById('canvas'),
+      prefixUrl: 'https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/',
+      showNavigator: true,
+      navigatorPosition: 'BOTTOM_RIGHT',
+      visibilityRatio: 0.3,
+      minZoomLevel: 0.2,
+      maxZoomPixelRatio: 3,
+      gestureSettingsTouch: { pinchToZoom: true, flickEnabled: true },
+      tileSources: {
+        width: data.width,
+        height: data.height,
+        tileSize: data.tileSize,
+        overlap: data.overlap,
+        minLevel: 0,
+        getTileUrl: (level, x, y) =>
+          data.tileUrlTemplate.replace('{level}', level).replace('{x}', x).replace('{y}', y),
+      },
+    });
+
+    // A log is roughly 20x taller than it is wide. Fitting the whole image
+    // on screen therefore renders it as a ~40px sliver — technically drawn,
+    // effectively invisible, which is what "nothing shows up" looked like.
+    // Open on the top of the strip at full width instead, which is where the
+    // header and scale live, and let the reader scroll down from there.
+    viewer.addOnceHandler('open', () => {
+      viewer.viewport.fitHorizontally();
+      const b = viewer.viewport.getBounds();
+      viewer.viewport.fitBounds(new OpenSeadragon.Rect(0, 0, b.width, b.height), true);
+    });
+
+    const mp = ((data.width * data.height) / 1e6).toFixed(0);
+    statusEl.innerHTML = `${data.width.toLocaleString()} &times; ${data.height.toLocaleString()} pixels (${mp} megapixels) — shown from the top at full width. Scroll or pinch to zoom, drag to pan.`;
+  } catch(err){
+    statusEl.innerHTML = (err.message || 'Something went wrong.') +
+      ' You can still <a href="' + documentUrl + '">download the original file</a>, though it is a TIFF and most browsers cannot display it.';
+  }
+})();
+</script>
+</body>
+</html>
