@@ -143,3 +143,35 @@ CREATE TABLE IF NOT EXISTS gcd_restrictions (
   extraction_notes TEXT,
   extracted_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Texas oil & gas well log depth/metadata, from the Railroad Commission's
+-- monthly log inventory spreadsheets.
+--
+-- Why this table exists: the RRC's Well Logs map layer (layer 8) carries an
+-- API number and a location and nothing else — verified live, its complete
+-- field list is API, OBJECTID, SHAPE. So it can tell you a log EXISTS but
+-- not how deep it starts, nor who operated the well. That detail is only
+-- published in per-month inventory workbooks, which is what this caches.
+--
+-- Coverage is deliberately partial and that's not a defect to hide: each
+-- monthly file lists only logs scanned that month (~334 records), against a
+-- 237k-row archive. A well with no row here has an UNKNOWN start depth,
+-- which the UI shows as its own category — never merged with "shallow".
+--
+-- top_log_interval_ft is stored NULL rather than 0 when the RRC leaves it
+-- unpopulated: ~20% of rows report 0 on holes thousands of feet deep, so 0
+-- means "not recorded", not "starts at the surface".
+CREATE TABLE IF NOT EXISTS well_log_inventory (
+  api TEXT PRIMARY KEY,
+  top_log_interval_ft INTEGER,
+  bottom_total_depth_ft INTEGER,
+  operator_name TEXT,
+  lease_name TEXT,
+  field_name TEXT,
+  well_number TEXT,
+  county_name TEXT,
+  log_description TEXT,
+  document_date TEXT,
+  source_file TEXT,
+  ingested_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9FH9BSHC9Q"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag("js", new Date());
+  gtag("config", "G-9FH9BSHC9Q");
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcreFoot | Oil &amp; Gas Well Logs — Texas &amp; New Mexico</title>
+<meta name="description" content="Find which oil and gas wells near an address have well logs on file, in Texas and New Mexico. Free lookup of public Railroad Commission and NMOCD records, with direct links to read the logs.">
+<link rel="canonical" href="https://acrefoot.io/well-logs.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AcreFoot | Oil &amp; Gas Well Logs">
+<meta property="og:description" content="Find which oil and gas wells near an address have well logs on file, in Texas and New Mexico.">
+<meta property="og:url" content="https://acrefoot.io/well-logs.html">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --bg: #f5f4ef; --panel: #fffdf8; --ink: #1e2a24; --ink-soft: #52605a;
+    --river: #2b6777; --river-deep: #1c4552; --clay: #a8643f; --moss: #3f6b4a;
+    --line: #ddd6c4; --amber: #b8863a; --slate: #5a6b78;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter', sans-serif;line-height:1.5;}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 80px;}
+  header{margin-bottom:32px;}
+  .brand-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .brand-logo{font-family:'Fraunces', serif;font-weight:700;font-size:20px;color:var(--river-deep);text-decoration:none;letter-spacing:-0.01em;}
+  .brand-logo:hover{color:var(--river);}
+  .state-nav{font-family:'JetBrains Mono', monospace; font-size:12px;}
+  .state-nav a{color:var(--ink-soft); text-decoration:none; padding:4px 8px; border-radius:5px;}
+  .state-nav a.current{color:var(--river); font-weight:600; background:#eaf1f2;}
+  .state-nav a:hover{text-decoration:underline;}
+  .state-nav .nav-sep{color:var(--line);margin:0 2px;}
+  .eyebrow{font-family:'JetBrains Mono', monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--river);margin-bottom:10px;}
+  h1{font-family:'Fraunces', serif;font-weight:700;font-size:clamp(28px,4vw,42px);margin:0 0 12px;color:var(--river-deep);letter-spacing:-0.01em;}
+  .sub{color:var(--ink-soft);font-size:16px;max-width:64ch;}
+  .hook{font-size:17px;color:var(--ink);font-weight:600;margin:0 0 8px;max-width:62ch;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:24px;}
+  .panel h2{font-family:'Fraunces', serif;font-size:19px;margin:0 0 4px;color:var(--ink);}
+  .panel .hint{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
+  form{display:flex;flex-wrap:wrap;gap:12px;align-items:end;}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px;}
+  label{font-size:13px;font-weight:500;color:var(--ink-soft);}
+  input, select{padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Inter',sans-serif;font-size:14px;background:#fff;color:var(--ink);}
+  input:focus, select:focus{outline:2px solid var(--river);outline-offset:1px;}
+  button{padding:11px 20px;background:var(--river);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+  button:hover{background:var(--river-deep);}
+  button:disabled{background:#a9b3af;cursor:wait;}
+  .status{font-size:14px;color:var(--ink-soft);margin-top:14px;min-height:20px;}
+  .status.error{color:var(--clay);font-weight:500;}
+  /* State switcher — swaps the data source; everything downstream is shared. */
+  .switcher{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .switcher button{background:#fff;color:var(--ink-soft);border:1px solid var(--line);font-weight:500;padding:8px 16px;}
+  .switcher button.active{background:var(--river);color:#fff;border-color:var(--river);}
+  .method-toggle{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .method-toggle button{background:#fff;color:var(--ink-soft);border:1px solid var(--line);font-weight:500;padding:8px 14px;}
+  .method-toggle button.active{background:var(--river);color:#fff;border-color:var(--river);}
+  .method-panel{display:none;}
+  .method-panel.active{display:block;}
+  #map{height:420px;border-radius:8px;border:1px solid var(--line);margin-top:4px;}
+  .map-hint{font-size:12.5px;color:var(--ink-soft);margin:10px 0 0;}
+  .map-legend{display:flex;flex-wrap:wrap;gap:12px 16px;margin-top:10px;font-size:12px;color:var(--ink-soft);}
+  .map-legend span{display:flex;align-items:center;gap:5px;}
+  .map-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-sizing:content-box;}
+  .map-legend i.hollow{background:transparent !important;border:1.5px dashed var(--ink-soft);}
+  /* Depth control — Texas only. Hidden entirely for New Mexico rather than
+     shown dead, because NMOCD publishes no log depth intervals at all. */
+  .depth-box{margin-top:18px;padding:16px 18px;border:1px solid var(--line);border-radius:9px;background:#fdfbf5;}
+  .depth-box h3{font-family:'Fraunces',serif;font-size:15px;margin:0 0 4px;color:var(--river-deep);}
+  .depth-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;}
+  .depth-row input[type=range]{flex:1;min-width:200px;accent-color:var(--river);}
+  .depth-row input[type=number]{width:110px;}
+  .depth-note{font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.45;}
+  .checkrow{display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:13px;color:var(--ink-soft);}
+  .checkrow input{margin-top:2px;}
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:16px;}
+  .well-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:#fdfbf5;}
+  .well-card h3{font-family:'Fraunces', serif;font-size:16px;margin:0 0 4px;color:var(--river-deep);}
+  .well-card .id-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin-bottom:12px;}
+  .well-card .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px;flex-wrap:wrap;}
+  .well-card .row:last-of-type{border-bottom:none;}
+  .well-card .row dt{color:var(--ink-soft);}
+  .well-card .row dd{margin:0;text-align:right;font-weight:500;word-break:break-word;min-width:0;}
+  .badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:5px;background:#eaf1f2;color:var(--river);margin-bottom:8px;}
+  .distance-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--river-deep);background:#eaf1f2;padding:2px 8px;border-radius:5px;margin-bottom:10px;}
+  .log-link{display:inline-block;margin-top:12px;background:#fff;color:var(--river);border:1px solid var(--river);padding:7px 13px;font-size:12.5px;border-radius:6px;text-decoration:none;font-weight:600;}
+  .log-link:hover{background:var(--river);color:#fff;}
+  .note{margin-top:12px;padding:10px 12px;border-radius:7px;font-size:13px;line-height:1.45;}
+  .note.info{background:#eef4f1;color:var(--moss);}
+  .note.warn{background:#fbf3e4;color:var(--amber);}
+  .source-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:6px;display:inline-block;margin-top:6px;}
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
+  footer a{color:var(--river);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand-bar">
+      <a href="/" class="brand-logo">AcreFoot</a>
+      <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/montana.html">Montana</a> · <a href="/nevada.html">Nevada</a> · <a href="/texas.html">Texas</a> · <a href="/wyoming.html">Wyoming</a> · <span class="nav-sep">|</span> <a href="/well-logs.html" class="current">Well Logs</a> · <a href="/marketplace.html">Marketplace</a></nav>
+    </div>
+    <div class="eyebrow">Live data · Texas &amp; New Mexico</div>
+    <h1>Oil &amp; Gas Well Logs</h1>
+    <p class="hook">Which wells near this property have logs on file — and how do I read them?</p>
+    <p class="sub">A well log is the record of what a drilling crew found on the way down. This is <strong>subsurface oil and gas data, not water rights</strong> — a separate research tool that happens to describe the same ground. Nothing here affects or reflects the water coverage on the state pages.</p>
+  </header>
+
+  <div class="panel">
+    <h2>Find wells with logs near a property</h2>
+    <p class="hint">Search by address or tap the map. Only wells that actually have logs on file are shown.</p>
+
+    <div class="switcher" id="switcher">
+      <button type="button" data-state="TX" class="active">Texas</button>
+      <button type="button" data-state="NM">New Mexico</button>
+    </div>
+
+    <div class="method-toggle">
+      <button type="button" data-method="address" class="active">Address</button>
+      <button type="button" data-method="map">Tap the map</button>
+    </div>
+
+    <div class="method-panel active" id="method-address">
+      <form id="addressForm">
+        <div class="field">
+          <label for="address">Street address</label>
+          <input type="text" id="address" placeholder="e.g. 100 N Main St, Monahans" autocomplete="off">
+        </div>
+        <div class="field" style="flex:0 0 140px;min-width:120px;">
+          <label for="radiusA">Radius (miles)</label>
+          <input type="number" id="radiusA" value="1" min="0.1" step="0.1">
+        </div>
+        <button type="submit" id="findBtn">Find</button>
+      </form>
+      <p class="map-hint" id="addressHint">Include the city — the state is set by the switcher above.</p>
+    </div>
+
+    <div class="method-panel" id="method-map">
+      <div id="map"></div>
+      <p class="map-hint">Tap anywhere to search that point.</p>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="panel" id="resultsPanel" style="display:none;">
+    <h2 id="resultsHeading">Wells with logs</h2>
+    <p class="hint" id="resultsHint"></p>
+
+    <div class="depth-box" id="depthBox" style="display:none;">
+      <h3>Log start depth</h3>
+      <p class="depth-note" style="margin-top:0;">Colour wells by how deep their shallowest log begins. Moving the line never hides a well — it only recolours.</p>
+      <div class="depth-row">
+        <input type="range" id="depthRange" min="0" max="20000" step="100" value="1000">
+        <input type="number" id="depthInput" value="1000" min="0" step="100">
+        <span style="font-size:13px;color:var(--ink-soft);">ft</span>
+      </div>
+      <div class="checkrow">
+        <input type="checkbox" id="showUnknown">
+        <label for="showUnknown" style="font-weight:400;">Include logs with no recorded start depth</label>
+      </div>
+      <p class="depth-note" id="depthCoverage"></p>
+    </div>
+
+    <div class="map-legend" id="legend"></div>
+    <div id="cards" class="cards-grid" style="margin-top:18px;"></div>
+  </div>
+
+  <footer>
+    <p><strong>What this is:</strong> live public records — the Texas Railroad Commission's own map service (its Well Logs layer, one row per log document) and New Mexico's OCD well layer plus its imaging system — pulled through this project's backend. No login, and nothing here is sample data.</p>
+    <p><strong>What this isn't:</strong> water rights. Oil and gas wells are a different regulatory world from the water coverage on the state pages, and the two are deliberately never mixed. A log tells you what rock and fluids a crew logged on the way down; it is not a statement about groundwater availability, ownership, or your right to use any of it.</p>
+    <p id="footerLimits"></p>
+    <div class="source-tag">Sources: gis.rrc.texas.gov (Texas well locations &amp; logs) · mapservice.nmstatelands.org (NMOCD wells) · ocdimage.emnrd.nm.gov (New Mexico log images) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
+    <p style="margin-top:16px;"><a href="/contact.html">Contact us</a> with questions or feedback. Water rights professional? <a href="/professional.html">Tell us what you need</a>.</p>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ---------- State ----------
+let currentState = 'TX';
+let lastResult = null;
+let map = null, marker = null, wellLayer = null;
+
+const STATE_INFO = {
+  TX: {
+    label: 'Texas',
+    center: [31.5, -99.5],
+    zoom: 6,
+    placeholder: 'e.g. 100 N Main St, Monahans',
+    maxRadius: 10,
+    hint: 'Include the city — the state is set by the switcher above.',
+  },
+  NM: {
+    label: 'New Mexico',
+    center: [34.4, -106.1],
+    zoom: 6,
+    placeholder: 'e.g. 200 N Dal Paso St, Hobbs',
+    maxRadius: 3,
+    // New Mexico has no "which wells have logs" layer, so each well in the
+    // radius has to be checked one at a time — which is why the radius is
+    // capped tighter here than in Texas.
+    hint: 'New Mexico checks each well individually, so searches are capped at 3 miles.',
+  },
+};
+
+function setStatus(msg, isError){
+  const el = document.getElementById('status');
+  el.textContent = msg || '';
+  el.className = 'status' + (isError ? ' error' : '');
+}
+
+function serverErrorMessage(err){
+  return (err && err.message) ? err.message : 'Something went wrong. Please try again.';
+}
+
+// ---------- Switcher ----------
+document.getElementById('switcher').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-state]');
+  if(!btn) return;
+  currentState = btn.dataset.state;
+  document.querySelectorAll('#switcher button').forEach(b => b.classList.toggle('active', b === btn));
+
+  const info = STATE_INFO[currentState];
+  document.getElementById('address').placeholder = info.placeholder;
+  document.getElementById('addressHint').textContent = info.hint;
+  const r = document.getElementById('radiusA');
+  r.max = info.maxRadius;
+  if(Number(r.value) > info.maxRadius) r.value = info.maxRadius;
+
+  // Clear results: they belong to the other state's data source.
+  document.getElementById('resultsPanel').style.display = 'none';
+  lastResult = null;
+  setStatus('');
+  if(map){ map.setView(info.center, info.zoom); if(wellLayer) wellLayer.clearLayers(); if(marker){ map.removeLayer(marker); marker = null; } }
+});
+
+document.querySelectorAll('.method-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.method-toggle button').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('method-' + btn.dataset.method).classList.add('active');
+    if(btn.dataset.method === 'map') initMap();
+  });
+});
+
+// ---------- Map ----------
+function initMap(){
+  if(map){ setTimeout(() => map.invalidateSize(), 60); return; }
+  const info = STATE_INFO[currentState];
+  map = L.map('map').setView(info.center, info.zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  }).addTo(map);
+  wellLayer = L.layerGroup().addTo(map);
+  map.on('click', (e) => runSearch(e.latlng.lat, e.latlng.lng));
+  setTimeout(() => map.invalidateSize(), 60);
+}
+
+// ---------- Geocoding (JSONP — Census doesn't support direct CORS fetch) ----------
+function geocode(address, stateLabel){
+  return new Promise((resolve, reject) => {
+    const cb = 'geo_cb_' + Math.random().toString(36).slice(2);
+    const timer = setTimeout(() => { cleanup(); reject(new Error('The address lookup timed out. Please try again.')); }, 15000);
+    function cleanup(){ clearTimeout(timer); delete window[cb]; const s = document.getElementById(cb); if(s) s.remove(); }
+    window[cb] = (data) => {
+      cleanup();
+      const m = data && data.result && data.result.addressMatches && data.result.addressMatches[0];
+      if(!m) return reject(new Error('No match for that address. Try including the city.'));
+      resolve({ lat: m.coordinates.y, lon: m.coordinates.x, label: m.matchedAddress });
+    };
+    const s = document.createElement('script');
+    s.id = cb;
+    s.src = 'https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=' +
+      encodeURIComponent(address + ', ' + stateLabel) + '&benchmark=Public_AR_Current&format=jsonp&callback=' + cb;
+    s.onerror = () => { cleanup(); reject(new Error('Could not reach the address lookup service.')); };
+    document.body.appendChild(s);
+  });
+}
+
+document.getElementById('addressForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const address = document.getElementById('address').value.trim();
+  if(!address) return setStatus('Enter an address first.', true);
+  const btn = document.getElementById('findBtn');
+  btn.disabled = true;
+  setStatus('Looking up that address…');
+  try {
+    const info = STATE_INFO[currentState];
+    const point = await geocode(address, info.label);
+    await runSearch(point.lat, point.lon, Number(document.getElementById('radiusA').value) || 1);
+  } catch(err){
+    setStatus(serverErrorMessage(err), true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---------- Search ----------
+async function runSearch(lat, lon, radius){
+  const info = STATE_INFO[currentState];
+  radius = Math.min(radius || Number(document.getElementById('radiusA').value) || 1, info.maxRadius);
+  setStatus(currentState === 'NM'
+    ? 'Checking each well in the radius for logs — this takes a moment…'
+    : 'Searching for wells with logs…');
+
+  try {
+    const res = await fetch(`/api/well-logs?state=${currentState}&lat=${lat}&lon=${lon}&radius=${radius}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+
+    lastResult = data;
+    // Texas returns depth-capable results; New Mexico never does.
+    if(data.supportsDepth) await attachDepths(data);
+    renderResults(data, lat, lon);
+    setStatus('');
+  } catch(err){
+    setStatus(serverErrorMessage(err), true);
+  }
+}
+
+// ---------- Depth (Texas only) ----------
+// The RRC's Well Logs layer carries API and geometry only — it cannot say
+// how deep a log starts. That lives in the Commission's monthly inventory
+// spreadsheets, so depth is known for some wells and genuinely unknown for
+// others. Unknown is its own category, never folded in with "shallow".
+async function attachDepths(data){
+  const apis = data.wells.map(w => w.api);
+  if(apis.length === 0) return;
+  try {
+    const res = await fetch('/api/well-logs/depths', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apis })
+    });
+    if(!res.ok) return;
+    const { depths } = await res.json();
+    data.wells.forEach(w => {
+      const d = depths[w.api];
+      if(d){
+        w.topLogIntervalFt = d.topLogIntervalFt;
+        w.bottomTotalDepthFt = d.bottomTotalDepthFt;
+        w.operator = d.operator || w.operator;
+        w.leaseName = d.leaseName;
+        w.fieldName = d.fieldName;
+        w.wellNumber = d.wellNumber || w.wellNumber;
+      }
+    });
+  } catch { /* depth is an enhancement; the wells still stand without it */ }
+}
+
+// Whether the depth control is worth showing at all, decided from the data
+// actually in hand rather than from the state.
+//
+// Texas has two log sources that barely overlap. The searchable map layer
+// holds the historical archive (237k logs) but publishes no depths at all.
+// The Commission's monthly inventory workbooks DO publish depths, but only
+// for logs scanned in the last ~13 months — and measured against a random
+// sample, only about 2% of inventory wells also appear in the map layer.
+// So for most searches there is genuinely no depth to show, and a control
+// that is dead 98% of the time is worse than no control. It appears only
+// when this result set actually has depths in it.
+function hasDepthData(data){
+  return !!(data && data.supportsDepth && data.wells.some(w => w.topLogIntervalFt));
+}
+
+function depthCategory(well, line){
+  if(!lastResult || !hasDepthData(lastResult)) return 'none';
+  const top = well.topLogIntervalFt;
+  // A recorded 0 means the field was never populated, not that the log
+  // starts at the surface — 17% of RRC records store it that way, on holes
+  // up to 27,000 ft deep. Treating those as shallow would put a bright
+  // marker on deep wells that never saw the aquifer.
+  if(top === null || top === undefined || top === 0) return 'unknown';
+  return top <= line ? 'shallow' : 'deep';
+}
+
+const CAT_STYLE = {
+  shallow: { color: '#2b6777', fill: '#2b6777', label: 'Log starts at or above the line' },
+  deep:    { color: '#5a6b78', fill: '#5a6b78', label: 'Log starts below the line' },
+  unknown: { color: '#8a7145', fill: 'transparent', label: 'No recorded start depth' },
+  none:    { color: '#2b6777', fill: '#2b6777', label: 'Has logs on file' },
+};
+
+function currentLine(){ return Number(document.getElementById('depthInput').value) || 0; }
+function showUnknown(){ return document.getElementById('showUnknown').checked; }
+
+['depthRange','depthInput'].forEach(id => {
+  document.getElementById(id).addEventListener('input', (e) => {
+    const v = Number(e.target.value) || 0;
+    document.getElementById('depthRange').value = Math.min(v, 20000);
+    document.getElementById('depthInput').value = v;
+    if(lastResult) renderResults(lastResult, lastResult.center.lat, lastResult.center.lon);
+  });
+});
+document.getElementById('showUnknown').addEventListener('change', () => {
+  if(lastResult) renderResults(lastResult, lastResult.center.lat, lastResult.center.lon);
+});
+
+// ---------- Render ----------
+function renderResults(data, lat, lon){
+  const panel = document.getElementById('resultsPanel');
+  panel.style.display = 'block';
+
+  const depthBox = document.getElementById('depthBox');
+  const showDepth = hasDepthData(data);
+  // Hidden whenever there's nothing to run it on — always for New Mexico,
+  // which publishes no log depths at all, and for Texas searches where no
+  // well in range has a depth on record.
+  depthBox.style.display = showDepth ? 'block' : 'none';
+
+  const line = currentLine();
+  const visible = data.wells.filter(w => {
+    const cat = depthCategory(w, line);
+    return cat !== 'unknown' || showUnknown();
+  });
+
+  document.getElementById('resultsHeading').textContent =
+    `${data.wells.length} well${data.wells.length === 1 ? '' : 's'} with logs on file`;
+
+  let hint = `${data.totalLogDocuments} log document${data.totalLogDocuments === 1 ? '' : 's'} across them, within ${data.radiusMiles} mile${data.radiusMiles === 1 ? '' : 's'}.`;
+  if(data.state === 'NM'){
+    hint += ` Checked ${data.wellsChecked} of ${data.wellsInRadius} wells in the radius.`;
+    if(data.truncated) hint += ' Narrow the radius to check the rest.';
+  }
+  document.getElementById('resultsHint').textContent = hint;
+
+  if(showDepth){
+    const known = data.wells.filter(w => w.topLogIntervalFt).length;
+    document.getElementById('depthCoverage').textContent =
+      `Start depth is on record for ${known} of ${data.wells.length} well${data.wells.length === 1 ? '' : 's'} here. ` +
+      `The Railroad Commission's map layer doesn't publish depths — they come from its monthly log inventories, which don't cover the whole archive. ` +
+      `A well with no recorded depth isn't a shallow well; it's an unanswered question.`;
+  }
+
+  renderLegend(data, showDepth);
+  renderCards(visible, data, line, showDepth);
+  renderMap(visible, data, lat, lon, line);
+
+  document.getElementById('footerLimits').innerHTML = data.state === 'TX'
+    ? "<strong>Texas limits worth knowing:</strong> the Commission's search system is a client-side app, so the deepest link possible is a well's log list — the last click to open a document is yours. On depth: the searchable map layer publishes no log depths at all, and the Commission's monthly inventory files (which do) cover only about the last year of new scans. The two sets barely overlap, so most wells here have no start depth on record and the depth control only appears when some actually do."
+    : "<strong>New Mexico limits worth knowing:</strong> NMOCD publishes no log depth intervals at all, so the depth control is hidden here rather than shown empty. In exchange the links go deeper than Texas allows — straight to the document list, with each file openable directly. Spud years of 9999 or 1900 and depths of 0 are the state's placeholders for \"not recorded,\" and are shown as unknown rather than taken literally.";
+}
+
+function renderLegend(data, showDepth){
+  const el = document.getElementById('legend');
+  if(!showDepth){
+    el.innerHTML = `<span><i style="background:${CAT_STYLE.none.fill};"></i>${CAT_STYLE.none.label}</span>`;
+    return;
+  }
+  el.innerHTML = `
+    <span><i style="background:${CAT_STYLE.shallow.fill};"></i>${CAT_STYLE.shallow.label}</span>
+    <span><i style="background:${CAT_STYLE.deep.fill};"></i>${CAT_STYLE.deep.label}</span>
+    <span><i class="hollow"></i>${CAT_STYLE.unknown.label}${showUnknown() ? '' : ' (hidden)'}</span>
+  `;
+}
+
+function fmt(n){ return n === null || n === undefined ? null : Number(n).toLocaleString(); }
+
+function renderCards(wells, data, line, showDepthCards){
+  const el = document.getElementById('cards');
+  if(wells.length === 0){
+    el.innerHTML = '<p class="map-hint">No wells to show with the current settings. Try a wider radius, or include logs with no recorded start depth.</p>';
+    return;
+  }
+  el.innerHTML = wells.map(w => {
+    const cat = depthCategory(w, line);
+    const rows = [];
+    if(w.operator) rows.push(['Operator', w.operator]);
+    if(w.wellName) rows.push(['Well name', w.wellName]);
+    if(w.leaseName) rows.push(['Lease', w.leaseName]);
+    if(w.wellNumber) rows.push(['Well number', w.wellNumber]);
+    if(w.fieldName) rows.push(['Field', w.fieldName]);
+    if(w.wellType) rows.push(['Well type', w.wellType]);
+    if(w.status) rows.push(['Status', w.status]);
+    if(w.county) rows.push(['County', w.county]);
+    if(w.spudYear) rows.push(['Drilled', w.spudYear]);
+    if(w.totalDepthFt) rows.push(['Total well depth', fmt(w.totalDepthFt) + ' ft']);
+    if(w.topLogIntervalFt) rows.push(['Log starts at', fmt(w.topLogIntervalFt) + ' ft']);
+    if(w.bottomTotalDepthFt) rows.push(['Log runs to', fmt(w.bottomTotalDepthFt) + ' ft']);
+    rows.push(['Logs on file', w.logCount]);
+
+    let depthNote = '';
+    if(showDepthCards && cat === 'unknown'){
+      depthNote = '<div class="note warn">No start depth on record for this well\'s logs. That means the Commission never populated the field — not that the log starts at the surface. Worth opening by hand if depth matters to you.</div>';
+    }
+
+    return `
+      <div class="well-card">
+        ${typeof w.distanceMiles === 'number' ? `<div class="distance-tag">${w.distanceMiles < 0.1 ? 'At this location' : w.distanceMiles.toFixed(1) + ' mi away'}</div>` : ''}
+        <h3>${w.wellName || w.operator || 'Well ' + w.api}</h3>
+        <div class="id-tag">API ${w.api}</div>
+        <dl>${rows.map(([k,v]) => `<div class="row"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+        ${depthNote}
+        ${w.logsUrl ? `<a class="log-link" href="${w.logsUrl}" target="_blank" rel="noopener">📄 ${data.state === 'NM' ? 'Open the log documents' : "Open this well's log list"}</a>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function renderMap(wells, data, lat, lon, line){
+  if(!map) initMap();
+  if(!map) return;
+  wellLayer.clearLayers();
+  if(marker) map.removeLayer(marker);
+  marker = L.circleMarker([lat, lon], { radius: 7, color: '#a8643f', fillColor: '#a8643f', fillOpacity: 0.9, weight: 2 })
+    .addTo(map).bindTooltip('Your search point');
+
+  wells.forEach(w => {
+    if(w.latitude == null || w.longitude == null) return;
+    const cat = depthCategory(w, line);
+    const st = CAT_STYLE[cat];
+    L.circleMarker([w.latitude, w.longitude], {
+      radius: 6,
+      color: st.color,
+      fillColor: st.fill,
+      fillOpacity: st.fill === 'transparent' ? 0 : 0.85,
+      weight: st.fill === 'transparent' ? 2 : 1.5,
+      dashArray: cat === 'unknown' ? '3,3' : null,
+    }).addTo(wellLayer).bindTooltip(`${w.wellName || 'API ' + w.api} — ${w.logCount} log${w.logCount === 1 ? '' : 's'}`);
+  });
+
+  const pts = wells.filter(w => w.latitude != null).map(w => [w.latitude, w.longitude]);
+  pts.push([lat, lon]);
+  if(pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [30, 30] });
+  else map.setView([lat, lon], 13);
+  setTimeout(() => map.invalidateSize(), 60);
+}
+</script>
+</body>
+</html>
