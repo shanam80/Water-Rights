@@ -19,6 +19,10 @@
   .btn:hover{background:var(--river-deep);}
   .btn.ghost{background:#4a5a63;}
   #canvas{flex:1;background:#12181c;}
+  #preview{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;overflow:auto;}
+  #preview[hidden]{display:none !important;}
+  #previewImg{max-width:340px;width:100%;border:1px solid #2c3a45;border-radius:6px;background:#fff;}
+  .preview-note{color:#9fb0b8;font-size:12.5px;text-align:center;max-width:44ch;line-height:1.45;}
   .status{padding:8px 14px;background:#1b242a;color:#9fb0b8;font-size:12.5px;line-height:1.4;}
   .status a{color:#7fc4cf;}
 </style>
@@ -30,6 +34,10 @@
     <a class="btn ghost" id="official" href="#" target="_blank" rel="noopener" hidden>View on state site</a>
   </div>
   <div id="canvas"></div>
+  <div id="preview" hidden>
+    <img id="previewImg" alt="Log preview">
+    <div class="preview-note">Low-resolution preview from the state's archive. The full zoomable scan is being prepared.</div>
+  </div>
   <div class="status" id="status">Loading…</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
@@ -45,6 +53,7 @@ const params = new URLSearchParams(location.search);
 const documentUrl = params.get('url');
 const title = params.get('title');
 const officialUrl = params.get('official');
+const thumbUrl = params.get('thumb');
 
 const statusEl = document.getElementById('status');
 if(title) document.getElementById('title').textContent = title;
@@ -56,54 +65,83 @@ if(officialUrl){
   el.hidden = false;
 }
 
+function showPreview(){
+  if(!thumbUrl) return;
+  document.getElementById('previewImg').src = thumbUrl;
+  document.getElementById('preview').hidden = false;
+}
+
+function startViewer(data){
+  document.getElementById('preview').hidden = true;
+  const viewer = OpenSeadragon({
+    element: document.getElementById('canvas'),
+    prefixUrl: 'https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/',
+    showNavigator: true,
+    navigatorPosition: 'BOTTOM_RIGHT',
+    visibilityRatio: 0.3,
+    minZoomLevel: 0.2,
+    maxZoomPixelRatio: 3,
+    gestureSettingsTouch: { pinchToZoom: true, flickEnabled: true },
+    tileSources: {
+      width: data.width,
+      height: data.height,
+      tileSize: data.tileSize,
+      overlap: data.overlap,
+      minLevel: 0,
+      getTileUrl: (level, x, y) =>
+        data.tileUrlTemplate.replace('{level}', level).replace('{x}', x).replace('{y}', y),
+    },
+  });
+
+  // A log is roughly 20x taller than it is wide. Fitting the whole image on
+  // screen renders it as a ~40px sliver — drawn, but effectively invisible,
+  // which is what "nothing shows up" looked like. Open on the top of the
+  // strip at full width, where the header and scale are.
+  viewer.addOnceHandler('open', () => {
+    viewer.viewport.fitHorizontally();
+    const b = viewer.viewport.getBounds();
+    viewer.viewport.fitBounds(new OpenSeadragon.Rect(0, 0, b.width, b.height), true);
+  });
+
+  const mp = ((data.width * data.height) / 1e6).toFixed(0);
+  statusEl.innerHTML = `${data.width.toLocaleString()} &times; ${data.height.toLocaleString()} pixels (${mp} megapixels) — shown from the top at full width. Scroll or pinch to zoom, drag to pan.`;
+}
+
 (async () => {
   if(!documentUrl){
     statusEl.textContent = 'No document was specified.';
     return;
   }
-  statusEl.textContent = 'Preparing the scan — the first time a log is opened this takes a few seconds.';
-  try {
-    const res = await fetch('/api/well-logs/document?url=' + encodeURIComponent(documentUrl));
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error || 'Could not prepare this document.');
+  showPreview();
 
-    const viewer = OpenSeadragon({
-      element: document.getElementById('canvas'),
-      prefixUrl: 'https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/',
-      showNavigator: true,
-      navigatorPosition: 'BOTTOM_RIGHT',
-      visibilityRatio: 0.3,
-      minZoomLevel: 0.2,
-      maxZoomPixelRatio: 3,
-      gestureSettingsTouch: { pinchToZoom: true, flickEnabled: true },
-      tileSources: {
-        width: data.width,
-        height: data.height,
-        tileSize: data.tileSize,
-        overlap: data.overlap,
-        minLevel: 0,
-        getTileUrl: (level, x, y) =>
-          data.tileUrlTemplate.replace('{level}', level).replace('{x}', x).replace('{y}', y),
-      },
-    });
+  // The scan is prepared in the background; this polls rather than holding
+  // one long request open, which is indistinguishable from a hang.
+  const started = Date.now();
+  const LIMIT_MS = 6 * 60 * 1000;
 
-    // A log is roughly 20x taller than it is wide. Fitting the whole image
-    // on screen therefore renders it as a ~40px sliver — technically drawn,
-    // effectively invisible, which is what "nothing shows up" looked like.
-    // Open on the top of the strip at full width instead, which is where the
-    // header and scale live, and let the reader scroll down from there.
-    viewer.addOnceHandler('open', () => {
-      viewer.viewport.fitHorizontally();
-      const b = viewer.viewport.getBounds();
-      viewer.viewport.fitBounds(new OpenSeadragon.Rect(0, 0, b.width, b.height), true);
-    });
+  while(Date.now() - started < LIMIT_MS){
+    try {
+      const res = await fetch('/api/well-logs/document?url=' + encodeURIComponent(documentUrl));
+      const data = await res.json();
 
-    const mp = ((data.width * data.height) / 1e6).toFixed(0);
-    statusEl.innerHTML = `${data.width.toLocaleString()} &times; ${data.height.toLocaleString()} pixels (${mp} megapixels) — shown from the top at full width. Scroll or pinch to zoom, drag to pan.`;
-  } catch(err){
-    statusEl.innerHTML = (err.message || 'Something went wrong.') +
-      ' You can still <a href="' + documentUrl + '">download the original file</a>, though it is a TIFF and most browsers cannot display it.';
+      if(res.status === 202){
+        const secs = Math.round((Date.now() - started) / 1000);
+        statusEl.textContent = `Preparing this scan — ${secs}s so far. Large logs can take a couple of minutes the first time; afterwards it opens instantly. The original file is downloadable now from the button above.`;
+        await new Promise(r => setTimeout(r, 4000));
+        continue;
+      }
+      if(!res.ok) throw new Error(data.error || 'Could not prepare this document.');
+
+      startViewer(data);
+      return;
+    } catch(err){
+      statusEl.innerHTML = (err.message || 'Something went wrong.') +
+        ' You can still <a href="' + documentUrl + '">download the original file</a>, though it is a TIFF that most browsers cannot display.';
+      return;
+    }
   }
+  statusEl.innerHTML = 'This scan is taking unusually long to prepare. ' +
+    '<a href="' + documentUrl + '">Download the original</a> instead, or try again shortly.';
 })();
 </script>
 </body>

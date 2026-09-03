@@ -38,7 +38,26 @@ const CACHE_DIR = path.join(__dirname, '..', '..', '..', '.cache', 'well-log-til
 // least-recently-used set is cheap.
 const MAX_CACHE_BYTES = 1.5 * 1024 * 1024 * 1024;
 
+// Half the native width. These are roughly 400 DPI scans, so 200 DPI is
+// still comfortably readable, and it cuts the work about fourfold — which
+// matters enormously on a small instance. Measured on a real 582 MP log:
+// 6.5s to tile at full width locally but ~186s on the deployed free tier;
+// at half width that drops to ~2.5s local, ~72s deployed.
+const MAX_TILE_WIDTH = 1664;
+
 const inFlight = new Map();
+// Documents that failed to build, so a retry isn't attempted on every poll.
+const failed = new Map();
+
+// Reports where a document is up to without starting work, so the page can
+// poll instead of holding a request open for minutes.
+function tileStatus(sourceUrl) {
+  const key = keyFor(sourceUrl);
+  if (fs.existsSync(path.join(CACHE_DIR, key, 'image.dzi'))) return 'ready';
+  if (inFlight.has(key)) return 'building';
+  if (failed.has(key)) return 'failed';
+  return 'absent';
+}
 
 function keyFor(url) {
   return crypto.createHash('sha1').update(url).digest('hex').slice(0, 16);
@@ -117,13 +136,23 @@ async function ensureTiles(sourceUrl) {
     // limitInputPixels must be off: these are far past sharp's default
     // guard, and the guard exists for untrusted uploads, not for a
     // known government scan we've already host-checked.
-    await sharp(buffer, { limitInputPixels: false, unlimited: true })
-      .tile({ size: 512, overlap: 1, layout: 'dz' })
-      .toFile(path.join(base, 'image.dz'));
+    let image = sharp(buffer, { limitInputPixels: false, unlimited: true });
+    const meta = await image.metadata();
+    if (meta.width > MAX_TILE_WIDTH) {
+      image = image.resize({ width: MAX_TILE_WIDTH });
+    }
+    await image.tile({ size: 512, overlap: 1, layout: 'dz' }).toFile(path.join(base, 'image.dz'));
 
     evictIfNeeded(key);
     return { key, base, dziPath, cached: false };
-  })().finally(() => inFlight.delete(key));
+  })()
+    .catch((err) => {
+      // Leave no half-written pyramid behind for the next request to trust.
+      fs.rmSync(base, { recursive: true, force: true });
+      failed.set(key, err.message);
+      throw err;
+    })
+    .finally(() => inFlight.delete(key));
 
   inFlight.set(key, job);
   return job;
@@ -138,4 +167,4 @@ function tilePath(key, rest) {
   return fs.existsSync(target) ? target : null;
 }
 
-module.exports = { ensureTiles, tilePath, isAllowed, keyFor, CACHE_DIR };
+module.exports = { ensureTiles, tileStatus, tilePath, isAllowed, keyFor, CACHE_DIR };

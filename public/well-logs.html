@@ -523,10 +523,13 @@ function fmt(n){ return n === null || n === undefined ? null : Number(n).toLocal
 // Our own viewer page, opened in a new tab. Texas already behaved this way
 // (its link goes to the Commission's page) and it was the one that worked,
 // so New Mexico now matches rather than trapping the reader in-page.
-function viewerHref(documentUrl, title, officialUrl){
+function viewerHref(documentUrl, title, officialUrl, thumbUrl){
   const q = new URLSearchParams({ url: documentUrl });
   if(title) q.set('title', title);
   if(officialUrl) q.set('official', officialUrl);
+  // Passed so the viewer can show something immediately while the full
+  // zoomable scan is still being prepared.
+  if(thumbUrl) q.set('thumb', thumbUrl);
   return '/log-viewer.html?' + q.toString();
 }
 
@@ -536,9 +539,9 @@ function renderDocuments(w, state){
       <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Documents on file</div>
       ${w.documents.map(d => `
         <div class="doc-row">
-          ${d.thumbnailUrl ? `<a href="${viewerHref(d.fileUrl, w.wellName || 'API ' + w.api, w.logsUrl)}" target="_blank" rel="noopener"><img class="doc-thumb" src="${d.thumbnailUrl}" alt="Preview of ${d.fileName}" loading="lazy"></a>` : ''}
+          ${d.thumbnailUrl ? `<a href="${viewerHref(d.fileUrl, w.wellName || 'API ' + w.api, w.logsUrl, d.thumbnailUrl)}" target="_blank" rel="noopener"><img class="doc-thumb" src="${d.thumbnailUrl}" alt="Preview of ${d.fileName}" loading="lazy"></a>` : ''}
           <div class="doc-meta">
-            <a href="${viewerHref(d.fileUrl, w.wellName || 'API ' + w.api, w.logsUrl)}" target="_blank" rel="noopener" class="doc-name">Open log ↗ · ${d.format.code}${d.sizeKb ? ' · ' + Math.round(d.sizeKb/1024*10)/10 + ' MB' : ''}</a>
+            <a href="${viewerHref(d.fileUrl, w.wellName || 'API ' + w.api, w.logsUrl, d.thumbnailUrl)}" target="_blank" rel="noopener" class="doc-name">Open log ↗ · ${d.format.code}${d.sizeKb ? ' · ' + Math.round(d.sizeKb/1024*10)/10 + ' MB' : ''}</a>
             <div class="doc-sub">${d.scanDate ? 'Scanned ' + d.scanDate : ''}</div>
           </div>
         </div>`).join('')}
@@ -617,7 +620,7 @@ function wellPopupHtml(w, state){
     const f = w.documents[0].format;
     format = `<div class="wl-pop-fmt">${f.label} (${f.code})${w.documents.length > 1 ? ' + ' + (w.documents.length - 1) + ' more' : ''}</div>`
       + (w.documents[0].thumbnailUrl
-          ? `<a href="${viewerHref(w.documents[0].fileUrl, w.wellName || 'API ' + w.api, w.logsUrl)}" target="_blank" rel="noopener"><img class="wl-pop-thumb" src="${w.documents[0].thumbnailUrl}" alt="Log preview" loading="lazy"></a>`
+          ? `<a href="${viewerHref(w.documents[0].fileUrl, w.wellName || 'API ' + w.api, w.logsUrl, w.documents[0].thumbnailUrl)}" target="_blank" rel="noopener"><img class="wl-pop-thumb" src="${w.documents[0].thumbnailUrl}" alt="Log preview" loading="lazy"></a>`
           : '')
       + '<div class="wl-pop-hint">Tap the preview to open the log in a new tab.</div>';
   } else if(w.logFormat){

@@ -2,7 +2,7 @@ const express = require('express');
 const texas = require('../services/wellLogs/texas');
 const newMexico = require('../services/wellLogs/newMexico');
 const { getDepthsForApis } = require('../services/wellLogs/inventory');
-const { ensureTiles, tilePath, isAllowed } = require('../services/wellLogs/documentTiles');
+const { ensureTiles, tileStatus, tilePath, isAllowed } = require('../services/wellLogs/documentTiles');
 const fs = require('fs');
 
 const router = express.Router();
@@ -65,16 +65,30 @@ router.get('/document', async (req, res) => {
   if (!url || !isAllowed(url)) {
     return res.status(400).json({ error: 'A document URL from a supported state archive is required.' });
   }
+
+  // Building a pyramid for one of these logs takes seconds on a fast box
+  // but minutes on a small instance — a 582 MP scan measured 6s locally
+  // against 186s deployed. Holding the request open for that long looks
+  // exactly like a hang, so the work starts in the background and the page
+  // polls. It shows the state's own thumbnail meanwhile.
+  const status = tileStatus(url);
+  if (status !== 'ready') {
+    ensureTiles(url).catch((err) => console.error('Tile build failed:', err.message));
+    return res.status(202).json({
+      status: status === 'failed' ? 'retrying' : 'building',
+      message: 'Preparing this scan for viewing.',
+    });
+  }
+
   try {
-    const { key, dziPath, cached } = await ensureTiles(url);
+    const { key, dziPath } = await ensureTiles(url);
     const dzi = fs.readFileSync(dziPath, 'utf8');
-    // The descriptor is XML; the width/height are all the viewer needs.
     const width = Number((dzi.match(/Width="(\d+)"/) || [])[1]);
     const height = Number((dzi.match(/Height="(\d+)"/) || [])[1]);
     if (!width || !height) throw new Error('Could not read the document dimensions.');
     res.json({
+      status: 'ready',
       key,
-      cached,
       width,
       height,
       tileSize: 512,
