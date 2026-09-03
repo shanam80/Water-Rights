@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9FH9BSHC9Q"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag("js", new Date());
+  gtag("config", "G-9FH9BSHC9Q");
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcreFoot | Saved areas</title>
+<meta name="description" content="Areas you've saved for offline use in AcreFoot, with the date each was saved.">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#2b6777">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AcreFoot">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f3ec; --panel:#fffdf8; --ink:#1e2a24; --ink-soft:#52605a;
+    --river:#2b6777; --river-deep:#1c4552; --clay:#a8643f; --moss:#3f6b4a;
+    --line:#ddd6c4; --amber:#b8863a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.5;}
+  .wrap{max-width:820px;margin:0 auto;padding:40px 24px 80px;}
+  .brand-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .brand-logo{font-family:'Fraunces',serif;font-weight:700;font-size:20px;color:var(--river-deep);text-decoration:none;}
+  .state-nav{font-family:'JetBrains Mono',monospace;font-size:12px;}
+  .state-nav a{color:var(--ink-soft);text-decoration:none;padding:4px 8px;border-radius:5px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--river);margin-bottom:10px;}
+  h1{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(26px,4vw,38px);margin:0 0 12px;color:var(--river-deep);}
+  .sub{color:var(--ink-soft);font-size:16px;max-width:62ch;}
+  .area{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:14px;}
+  .area h2{font-family:'Fraunces',serif;font-size:17px;margin:0 0 4px;color:var(--river-deep);}
+  .area .meta{font-size:12.5px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;margin-bottom:10px;}
+  .age{font-size:13px;padding:7px 10px;border-radius:6px;margin-bottom:12px;line-height:1.4;}
+  .age.fresh{background:#eef4f1;color:var(--moss);}
+  .age.stale{background:#fbf3e4;color:var(--amber);}
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+  button,a.btn{padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600;border:none;
+    cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;display:inline-block;}
+  .primary{background:var(--river);color:#fff;}
+  .ghost{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .danger{background:#fff;color:var(--clay);border:1px solid var(--clay);}
+  .empty{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:28px;text-align:center;color:var(--ink-soft);}
+  .storage{font-size:12.5px;color:var(--ink-soft);margin-top:22px;padding-top:14px;border-top:1px solid var(--line);}
+  footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
+  footer a{color:var(--river);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand-bar">
+    <a href="/" class="brand-logo">AcreFoot</a>
+    <nav class="state-nav"><a href="/">Back to the map</a></nav>
+  </div>
+  <div class="eyebrow">Offline</div>
+  <h1>Saved areas</h1>
+  <p class="sub">Areas you've saved are stored on this device and stay readable without a connection. Each one shows the date it was saved — saved records are a snapshot, not live data.</p>
+
+  <div id="list" style="margin-top:26px;"><p class="sub">Loading…</p></div>
+  <div class="storage" id="storage"></div>
+
+  <footer>
+    <p>Saved areas live only in this browser on this device. Clearing site data removes them, and phones can evict storage when space runs low — if an area disappears, saving it again restores it.</p>
+    <p><a href="/">Back to the map</a></p>
+  </footer>
+</div>
+
+<script src="/offline-areas.js"></script>
+<script>
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function summarise(a){
+  const p = a.payload || {};
+  const counts = [];
+  if(Array.isArray(p.rights)) counts.push(p.rights.length + ' water rights');
+  if(Array.isArray(p.nearbyRights)) counts.push(p.nearbyRights.length + ' nearby rights');
+  if(Array.isArray(p.onParcelRights) && p.onParcelRights.length) counts.push(p.onParcelRights.length + ' on the parcel');
+  if(Array.isArray(p.wells)) counts.push(p.wells.length + ' wells');
+  return counts.join(' · ') || 'Saved records';
+}
+
+async function render(){
+  const list = document.getElementById('list');
+  let areas = [];
+  try {
+    areas = await OfflineAreas.list();
+  } catch(err){
+    list.innerHTML = '<div class="empty">Saved areas could not be read on this device.</div>';
+    return;
+  }
+
+  if(areas.length === 0){
+    list.innerHTML = `<div class="empty">
+      <p style="margin:0 0 8px;"><strong>Nothing saved yet.</strong></p>
+      <p style="margin:0;">Search a location, then use <em>Save this area for offline</em> on the results. The size is shown before anything downloads.</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = areas.map(a => `
+    <div class="area">
+      <h2>${esc(a.label)}</h2>
+      <div class="meta">${esc(a.state)} · ${a.lat.toFixed(4)}, ${a.lon.toFixed(4)} · ${a.radiusMiles} mi · ${OfflineAreas.formatBytes(a.bytes)}</div>
+      <div class="age ${OfflineAreas.isStale(a) ? 'stale' : 'fresh'}">${esc(OfflineAreas.describeAge(a))}</div>
+      <div style="font-size:13.5px;margin-bottom:12px;">${esc(summarise(a))}</div>
+      <div class="row">
+        <a class="btn primary" href="/${a.state === 'TX' ? 'texas.html' : a.state === 'NM' ? 'well-logs.html' : a.state === 'CO' ? '' : a.state.toLowerCase() + '.html'}?lat=${a.lat}&lon=${a.lon}&radius=${a.radiusMiles}&offline=${encodeURIComponent(a.id)}">Open</a>
+        <button class="ghost" data-refresh="${esc(a.id)}">Refresh</button>
+        <button class="danger" data-delete="${esc(a.id)}">Delete</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await OfflineAreas.remove(btn.dataset.delete);
+      if(typeof gtag === 'function') gtag('event', 'offline_area_deleted');
+      render();
+      showStorage();
+    });
+  });
+
+  list.querySelectorAll('[data-refresh]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if(!navigator.onLine){
+        btn.textContent = 'Needs a connection';
+        setTimeout(() => { btn.textContent = 'Refresh'; }, 2500);
+        return;
+      }
+      const area = await OfflineAreas.get(btn.dataset.refresh);
+      if(!area) return;
+      btn.disabled = true; btn.textContent = 'Refreshing…';
+      try {
+        const res = await fetch(area.refreshUrl || buildRefreshUrl(area));
+        const payload = await res.json();
+        if(!res.ok) throw new Error(payload.error || 'Refresh failed');
+        await OfflineAreas.saveArea({ ...area, payload });
+        if(typeof gtag === 'function') gtag('event', 'offline_area_refreshed');
+        render();
+      } catch(err){
+        btn.disabled = false; btn.textContent = 'Refresh failed';
+        setTimeout(() => { btn.textContent = 'Refresh'; }, 2500);
+      }
+    });
+  });
+}
+
+// Rebuilds the API call for an area saved before refreshUrl was recorded.
+function buildRefreshUrl(a){
+  const r = a.radiusMiles || 1;
+  if(a.state === 'NM') return `/api/well-logs?state=NM&lat=${a.lat}&lon=${a.lon}&radius=${r}`;
+  if(a.state === 'TX') return `/api/texas/wells/nearby?lat=${a.lat}&lon=${a.lon}&radius=${r}`;
+  return `/api/${a.state.toLowerCase()}/water-rights?lat=${a.lat}&lon=${a.lon}&radius=${r}`;
+}
+
+async function showStorage(){
+  const el = document.getElementById('storage');
+  const est = await OfflineAreas.estimate();
+  let persisted = false;
+  try { persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false; } catch {}
+  if(!est){ el.textContent = ''; return; }
+  el.textContent = `Using ${OfflineAreas.formatBytes(est.usage || 0)} of roughly ${OfflineAreas.formatBytes(est.quota || 0)} available on this device.` +
+    (persisted ? ' Storage is marked persistent, so the browser should not evict it automatically.'
+               : ' The browser has not granted persistent storage, so saved areas can be evicted if space runs low.');
+}
+
+render();
+showStorage();
+</script>
+<script src="/pwa.js" defer></script>
+</body>
+</html>

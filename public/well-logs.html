@@ -125,6 +125,13 @@
   footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
   footer a{color:var(--river);}
 </style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#2b6777">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AcreFoot">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
 </head>
 <body>
 <div class="wrap">
@@ -358,6 +365,16 @@ async function runSearch(lat, lon, radius){
     // Texas returns depth-capable results; New Mexico never does.
     if(data.state === 'TX') await attachDepths(data);
     renderResults(data, lat, lon);
+
+    // Offer the install only now — after a lookup has actually returned
+    // something, which is the moment the value is proven.
+    if(window.maybeOfferInstall) window.maybeOfferInstall();
+    if(window.attachOfflineSave){
+      window.attachOfflineSave(document.getElementById('resultsPanel'), {
+        state: currentState, lat, lon, radiusMiles: data.radiusMiles, payload: data,
+        label: `${currentState === 'NM' ? 'New Mexico' : 'Texas'} well logs · ${data.wells.length} wells`
+      });
+    }
 
     // Start preparing the first scan of each well now, while these results
     // are being read. Opening one cold takes a while on a small server, so
@@ -689,5 +706,9 @@ function renderMap(wells, data, lat, lon, line){
 </script>
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
+<script src="/gps-accuracy.js"></script>
+<script src="/offline-areas.js"></script>
+<script src="/offline-ui.js"></script>
+<script src="/pwa.js" defer></script>
 </body>
 </html>
