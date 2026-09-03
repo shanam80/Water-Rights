@@ -123,6 +123,10 @@
     border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin-top:2px;}
   .wl-pop-link:hover{background:var(--river-deep);}
   .log-viewer{position:fixed;inset:0;z-index:11000;background:#12181c;display:flex;flex-direction:column;}
+  /* The hidden attribute only sets display:none at user-agent specificity,
+     which the class rule above beats — so without this the viewer sits over
+     the whole page permanently and nothing else is clickable. */
+  .log-viewer[hidden]{display:none !important;}
   .lv-bar{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#1b242a;color:#e8eef0;flex-wrap:wrap;}
   .lv-title{font-family:'Fraunces',serif;font-size:15px;margin-right:auto;}
   .lv-actions{display:flex;gap:8px;flex-wrap:wrap;}
