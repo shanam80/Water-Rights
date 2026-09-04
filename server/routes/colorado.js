@@ -63,7 +63,10 @@ router.get('/water-rights', async (req, res) => {
     }
 
     const parcelRings = parcel && !parcel.error && !parcel.notFound ? parcel.rings : null;
-    const result = await searchWaterRightsNearPoint(county, latN, lonN, { pageSize, parcelRings });
+    // Colorado searches by county upstream, so the radius filters the
+    // distance already computed per right rather than being passed on.
+    const radiusMiles = req.query.radius ? Math.min(Math.max(Number(req.query.radius), 0.1), 25) : null;
+    const result = await searchWaterRightsNearPoint(county, latN, lonN, { pageSize, parcelRings, radiusMiles });
 
     // Real curtailment status from DWR's own administrative-call records.
     // Best-effort — never let this fail the search itself.

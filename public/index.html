@@ -857,7 +857,7 @@ async function performPointSearch(county, lat, lon){
   setStatus('Querying Colorado DWR live database…');
   hidePanels();
   try {
-    const res = await fetch(`/api/colorado/water-rights?county=${encodeURIComponent(county.toUpperCase())}&lat=${lat}&lon=${lon}&pageSize=1000`);
+    const res = await fetch(`/api/colorado/water-rights?county=${encodeURIComponent(county.toUpperCase())}&lat=${lat}&lon=${lon}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}&pageSize=1000`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
 

@@ -40,7 +40,16 @@ async function searchWaterRightsByCounty(county, pageSize = 1000) {
 // "on this parcel" (via point-in-polygon against the parcel's boundary
 // rings) vs. "nearby," and sorts nearby by actual distance. Mirrors
 // performSearch() in the prototype.
-async function searchWaterRightsNearPoint(county, lat, lon, { pageSize = 1000, parcelRings = null } = {}) {
+// Colorado's API is county-scoped rather than radius-scoped — there's no
+// distance parameter to pass upstream. But every row already carries a
+// computed distance, so a radius genuinely narrows the list here rather
+// than being decorative: a county search can return hundreds of rights
+// scattered dozens of miles away.
+//
+// Deliberately does NOT filter on-parcel rights. Those are on the parcel
+// asked about, which is the question; hiding one because it sits just
+// outside a radius would be wrong.
+async function searchWaterRightsNearPoint(county, lat, lon, { pageSize = 1000, parcelRings = null, radiusMiles = null } = {}) {
   const { rows, totalOnFile } = await fetchWaterRightsByCounty(county, pageSize);
   const fetchedCount = rows.length;
 
@@ -53,8 +62,11 @@ async function searchWaterRightsNearPoint(county, lat, lon, { pageSize = 1000, p
   withDistance.sort((a, b) => a.dist - b.dist);
 
   const onParcelRights = withDistance.filter((x) => x.onParcel).map((x) => translateWaterRight(x.row));
-  const nearbyRights = withDistance
-    .filter((x) => !x.onParcel)
+
+  const withinRadius = withDistance.filter(
+    (x) => !x.onParcel && (!radiusMiles || x.dist <= radiusMiles)
+  );
+  const nearbyRights = withinRadius
     .slice(0, NEARBY_LIMIT)
     .map((x) => ({ ...translateWaterRight(x.row), distanceMiles: x.dist }));
 
@@ -63,6 +75,12 @@ async function searchWaterRightsNearPoint(county, lat, lon, { pageSize = 1000, p
     nearbyRights,
     totalOnFile,
     fetchedCount,
+    searchRadiusMiles: radiusMiles,
+    // How many the radius excluded, so the page can offer to widen rather
+    // than leaving someone wondering why a busy county looks empty.
+    excludedByRadius: radiusMiles
+      ? withDistance.filter((x) => !x.onParcel).length - withinRadius.length
+      : 0,
     truncated: totalOnFile > fetchedCount,
   };
 }

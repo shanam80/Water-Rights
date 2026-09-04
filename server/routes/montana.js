@@ -59,7 +59,10 @@ router.get('/water-rights', async (req, res) => {
     }
 
     const parcelRings = parcel && !parcel.error && !parcel.notFound ? parcel.rings : null;
-    const result = await searchWaterRightsNearPoint(county, latN, lonN, { parcelRings });
+    // Montana's layers are county-scoped too, so the radius filters here
+    // against each record's computed distance.
+    const radiusMiles = req.query.radius ? Math.min(Math.max(Number(req.query.radius), 0.1), 25) : null;
+    const result = await searchWaterRightsNearPoint(county, latN, lonN, { parcelRings, radiusMiles });
     res.json({ parcel, ...result });
   } catch (err) {
     res.status(502).json({ error: err.message });

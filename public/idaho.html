@@ -425,6 +425,14 @@ async function handlePointSelected(lat, lng){
     const poly = L.polygon(ringsToLatLngs(right.geometry.rings), {
       color: right.layer.color, weight: 2, fillColor: right.layer.color, fillOpacity: 0.3
     }).addTo(leafletMap);
+    // Idaho's shapes had no popup at all, so the map alone said nothing —
+    // which matters most in full screen, where leaving the map to read a
+    // card defeats the point of expanding it. Idaho's rights are areas
+    // rather than points, so there's no distance to show; the shape itself
+    // already covers the searched point.
+    if(window.buildRightPopup){
+      poly.bindPopup(window.buildRightPopup(right, 'ID', { onParcel: true }), { maxWidth: 300, minWidth: 220 });
+    }
     rightsPolygonLayers.push(poly);
   });
 
@@ -589,6 +597,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
+<script src="/right-popup.js"></script>
 <script src="/gps-accuracy.js"></script>
 <script src="/offline-areas.js"></script>
 <script src="/offline-ui.js"></script>

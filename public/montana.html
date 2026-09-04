@@ -342,7 +342,7 @@ function plotRights(onParcelRights, nearbyRights, placesOfUse){
       weight: isOnParcel ? 3 : 1.5,
       fillColor: markerColorForType(right.recordType),
       fillOpacity: 0.9
-    }).bindPopup(`<strong>${right.owners || right.reservoirName || 'Water right'}</strong><br>${right.wrNumber ? `WR# ${right.wrNumber}<br>` : ''}${isOnParcel ? '<strong>On this parcel</strong>' : (isFinite(right.distanceMiles) ? right.distanceMiles.toFixed(1) + ' mi away' : '')}`);
+    }).bindPopup(window.buildRightPopup ? window.buildRightPopup(right, 'MT', { onParcel: isOnParcel }) : (`<strong>${right.owners || right.reservoirName || 'Water right'}</strong><br>${right.wrNumber ? `WR# ${right.wrNumber}<br>` : ''}${isOnParcel ? '<strong>On this parcel</strong>' : (isFinite(right.distanceMiles) ? right.distanceMiles.toFixed(1) + ' mi away' : '')}`), { maxWidth: 300, minWidth: 220 });
     marker.addTo(leafletMap);
     rightsLayers.push(marker);
   }
@@ -354,7 +354,7 @@ function plotRights(onParcelRights, nearbyRights, placesOfUse){
     if(!pou.geometry?.rings) return;
     const poly = L.polygon(ringsToLatLngs(pou.geometry.rings), {
       color: '#b8863a', weight: 2, fillColor: '#b8863a', fillOpacity: 0.15
-    }).bindPopup(`<strong>Place of use</strong><br>${pou.owners || ''}${pou.wrNumber ? `<br>WR# ${pou.wrNumber}` : ''}`);
+    }).bindPopup(window.buildRightPopup ? window.buildRightPopup(right, 'MT', { onParcel: right.onParcel }) : (`<strong>Place of use</strong><br>${pou.owners || ''}${pou.wrNumber ? `<br>WR# ${pou.wrNumber}` : ''}`), { maxWidth: 300, minWidth: 220 });
     poly.addTo(leafletMap);
     rightsLayers.push(poly);
   });
@@ -385,7 +385,7 @@ async function performPointSearch(county, lat, lon){
   setStatus('Querying Montana DNRC live database…');
   cardsPanel.style.display = 'none';
   try {
-    const res = await fetch(`/api/montana/water-rights?county=${encodeURIComponent(county.toUpperCase())}&lat=${lat}&lon=${lon}`);
+    const res = await fetch(`/api/montana/water-rights?county=${encodeURIComponent(county.toUpperCase())}&lat=${lat}&lon=${lon}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
 
@@ -573,6 +573,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
+<script src="/right-popup.js"></script>
 <script src="/gps-accuracy.js"></script>
 <script src="/offline-areas.js"></script>
 <script src="/offline-ui.js"></script>

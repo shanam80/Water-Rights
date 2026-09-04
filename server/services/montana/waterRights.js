@@ -62,7 +62,11 @@ async function searchWaterRightsByCounty(county) {
 // client-side point-in-polygon reimplementation here — Esri's own spatial
 // query does it server-side when queried with esriSpatialRelIntersects
 // against a point geometry.
-async function searchWaterRightsNearPoint(county, lat, lon, { parcelRings = null } = {}) {
+// Montana's diversion and reservoir layers are queried by county, not by
+// radius, so the radius is applied here against the distance already
+// computed per record. On-parcel rights are exempt: they're on the parcel
+// asked about, which is the question being answered.
+async function searchWaterRightsNearPoint(county, lat, lon, { parcelRings = null, radiusMiles = null } = {}) {
   const [diversions, reservoirs, placesOfUseFeatures] = await Promise.all([
     queryLayer(LAYERS.diversion, byCountyParams(county)),
     queryLayer(LAYERS.reservoir, byCountyParams(county)),
@@ -89,10 +93,9 @@ async function searchWaterRightsNearPoint(county, lat, lon, { parcelRings = null
   const pointRights = [...tagAndMeasure(diversions, 'diversion'), ...tagAndMeasure(reservoirs, 'reservoir')];
 
   const onParcelRights = pointRights.filter((r) => r.onParcel);
-  const nearbyRights = pointRights
-    .filter((r) => !r.onParcel)
-    .sort((a, b) => a.distanceMiles - b.distanceMiles)
-    .slice(0, NEARBY_LIMIT);
+  const offParcel = pointRights.filter((r) => !r.onParcel).sort((a, b) => a.distanceMiles - b.distanceMiles);
+  const withinRadius = offParcel.filter((r) => !radiusMiles || r.distanceMiles <= radiusMiles);
+  const nearbyRights = withinRadius.slice(0, NEARBY_LIMIT);
 
   const placesOfUse = placesOfUseFeatures.map((f) => translateWaterRightFeature(f, 'placeOfUse'));
 
@@ -101,6 +104,8 @@ async function searchWaterRightsNearPoint(county, lat, lon, { parcelRings = null
     nearbyRights,
     placesOfUse,
     fetchedCount: diversions.length + reservoirs.length,
+    searchRadiusMiles: radiusMiles,
+    excludedByRadius: radiusMiles ? offParcel.length - withinRadius.length : 0,
   };
 }
 

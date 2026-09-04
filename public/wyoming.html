@@ -290,7 +290,7 @@ async function handlePointSelected(lat, lng){
         if(r.location){
           L.circleMarker([r.location.lat, r.location.lon], {
             radius: 7, color: '#fff', weight: 1.5, fillColor: '#2b6777', fillOpacity: 0.9
-          }).bindPopup(`<strong>${r.facilityName || r.owner || r.kind}</strong><br>${r.wrNumber ? `WR# ${r.wrNumber}<br>` : ''}${r.status ? `Status: ${r.status}<br>` : ''}${typeof r.distanceMiles === 'number' ? r.distanceMiles.toFixed(2) + ' mi away' : ''}`).addTo(group);
+          }).bindPopup(window.buildRightPopup ? window.buildRightPopup(r, 'WY', { onParcel: r.onParcel }) : (`<strong>${r.facilityName || r.owner || r.kind}</strong><br>${r.wrNumber ? `WR# ${r.wrNumber}<br>` : ''}${r.status ? `Status: ${r.status}<br>` : ''}${typeof r.distanceMiles === 'number' ? r.distanceMiles.toFixed(2) + ' mi away' : ''}`), { maxWidth: 300, minWidth: 220 }).addTo(group);
         }
       });
       rightsMarkersLayer = group.addTo(leafletMap);
@@ -395,6 +395,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
+<script src="/right-popup.js"></script>
 <script src="/gps-accuracy.js"></script>
 <script src="/offline-areas.js"></script>
 <script src="/offline-ui.js"></script>

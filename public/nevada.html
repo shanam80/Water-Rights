@@ -354,7 +354,7 @@ function plotRights(onParcelRights, nearbyRights, placesOfUse){
       weight: isOnParcel ? 3 : 1.5,
       fillColor: '#2b6777',
       fillOpacity: 0.9
-    }).bindPopup(`<strong>${right.siteName || 'Point of diversion'}</strong><br>${right.appNumber ? `App# ${right.appNumber}<br>` : ''}${isOnParcel ? '<strong>On this parcel</strong>' : (isFinite(right.distanceMiles) ? right.distanceMiles.toFixed(1) + ' mi away' : '')}`);
+    }).bindPopup(window.buildRightPopup ? window.buildRightPopup(right, 'NV', { onParcel: isOnParcel }) : (`<strong>${right.siteName || 'Point of diversion'}</strong><br>${right.appNumber ? `App# ${right.appNumber}<br>` : ''}${isOnParcel ? '<strong>On this parcel</strong>' : (isFinite(right.distanceMiles) ? right.distanceMiles.toFixed(1) + ' mi away' : '')}`), { maxWidth: 300, minWidth: 220 });
     marker.addTo(leafletMap);
     rightsLayers.push(marker);
   }
@@ -374,7 +374,7 @@ function plotRights(onParcelRights, nearbyRights, placesOfUse){
     }
     const poly = L.polygon(ringsToLatLngs(pou.geometry.rings), {
       color: '#b8863a', weight: 2, fillColor: '#b8863a', fillOpacity: 0.15
-    }).bindPopup(`<strong>Place of use</strong>${pou.siteName ? `<br>${pou.siteName}` : ''}`);
+    }).bindPopup(window.buildRightPopup ? window.buildRightPopup(right, 'NV', { onParcel: right.onParcel }) : (`<strong>Place of use</strong>${pou.siteName ? `<br>${pou.siteName}` : ''}`), { maxWidth: 300, minWidth: 220 });
     poly.addTo(leafletMap);
     rightsLayers.push(poly);
   });
@@ -546,6 +546,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
+<script src="/right-popup.js"></script>
 <script src="/gps-accuracy.js"></script>
 <script src="/offline-areas.js"></script>
 <script src="/offline-ui.js"></script>
