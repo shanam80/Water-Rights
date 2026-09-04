@@ -2,6 +2,7 @@ const express = require('express');
 const { fetchParcelAtPoint } = require('../services/nevada/parcels');
 const { searchWaterRightsNearPoint } = require('../services/nevada/waterRights');
 const { findNearbyWells } = require('../services/nevada/wells');
+const { getAdministrativeAreas } = require('../services/administrativeAreas');
 
 const router = express.Router();
 
@@ -55,7 +56,16 @@ router.get('/water-rights', async (req, res) => {
   try {
     const parcelRings = parcel && !parcel.error && !parcel.notFound ? parcel.rings : null;
     const result = await searchWaterRightsNearPoint(point.lat, point.lon, { parcelRings, radiusMiles });
-    res.json({ parcel, ...result });
+    // Whether the State Engineer has designated this basin. Nevada has no
+    // live call feed, so designation is the real restriction signal here.
+    // Best-effort — the rights themselves matter more than the flag.
+    let administrative = { supported: true, areas: [] };
+    try {
+      administrative = await getAdministrativeAreas('NV', point.lat, point.lon);
+    } catch (err) {
+      console.error('Nevada administrative lookup failed:', err.message);
+    }
+    res.json({ parcel, ...result, administrative });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

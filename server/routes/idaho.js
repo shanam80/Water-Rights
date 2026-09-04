@@ -1,6 +1,7 @@
 const express = require('express');
 const { searchWaterRightsAtPoint } = require('../services/idaho/waterRights');
 const { findNearbyWells } = require('../services/idaho/wells');
+const { getAdministrativeAreas } = require('../services/administrativeAreas');
 
 const router = express.Router();
 
@@ -22,7 +23,16 @@ router.get('/water-rights', async (req, res) => {
   if (!point) return;
   try {
     const result = await searchWaterRightsAtPoint(point.lat, point.lon);
-    res.json(result);
+    // Whether this ground is under a restriction — Idaho has no live call
+    // feed, so administrative status is the honest risk signal. Best-effort:
+    // the rights themselves matter more than the flag.
+    let administrative = { supported: true, areas: [] };
+    try {
+      administrative = await getAdministrativeAreas('ID', point.lat, point.lon);
+    } catch (err) {
+      console.error('Idaho administrative lookup failed:', err.message);
+    }
+    res.json({ ...result, administrative });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

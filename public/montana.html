@@ -354,7 +354,7 @@ function plotRights(onParcelRights, nearbyRights, placesOfUse){
     if(!pou.geometry?.rings) return;
     const poly = L.polygon(ringsToLatLngs(pou.geometry.rings), {
       color: '#b8863a', weight: 2, fillColor: '#b8863a', fillOpacity: 0.15
-    }).bindPopup(window.buildRightPopup ? window.buildRightPopup(right, 'MT', { onParcel: right.onParcel }) : (`<strong>Place of use</strong><br>${pou.owners || ''}${pou.wrNumber ? `<br>WR# ${pou.wrNumber}` : ''}`), { maxWidth: 300, minWidth: 220 });
+    }).bindPopup(window.buildRightPopup ? window.buildRightPopup(pou, 'MT', { onParcel: pou.onParcel }) : (`<strong>Place of use</strong><br>${pou.owners || ''}${pou.wrNumber ? `<br>WR# ${pou.wrNumber}` : ''}`), { maxWidth: 300, minWidth: 220 });
     poly.addTo(leafletMap);
     rightsLayers.push(poly);
   });

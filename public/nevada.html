@@ -185,7 +185,7 @@
   <footer>
     <p><strong>What this is:</strong> live data from Nevada NDWR's water-rights and well-driller-report services, plus a statewide parcel index, pulled through this project's own backend.</p>
     <p><strong>What this isn't yet:</strong> a guarantee that a nearby right serves the property you searched. Also, Nevada's parcel data here is thinner than other states' — a boundary, acreage, and a link to that county assessor's full record, not owner name/address directly. That's a limit of what Nevada publishes, not an oversight: the one statewide parcel service that includes ownership restricts redistribution outside the agency, and owner names otherwise live with the 17 individual county assessors rather than in any single public statewide dataset. County codes are now fully translated (verified by checking real records' coordinates against Census county boundaries). Permit status codes are translated where NDWR's own published meaning could be confirmed — 14 of the 24 codes in use. The rest still show as Nevada's raw abbreviation: water right status carries legal weight, so an unconfirmed code is left as-is rather than given a plausible-sounding but unverified expansion.</p>
-    <div class="source-tag">Sources: arcgis.water.nv.gov (Nevada NDWR) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
+    <div class="source-tag">Sources: arcgis.water.nv.gov (water rights, wells, basin designation orders) (Nevada NDWR) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback. Water rights professional? <a href="/professional.html" style="color:var(--river);">Tell us what you need</a>.</p>
   </footer>
 
@@ -374,7 +374,7 @@ function plotRights(onParcelRights, nearbyRights, placesOfUse){
     }
     const poly = L.polygon(ringsToLatLngs(pou.geometry.rings), {
       color: '#b8863a', weight: 2, fillColor: '#b8863a', fillOpacity: 0.15
-    }).bindPopup(window.buildRightPopup ? window.buildRightPopup(right, 'NV', { onParcel: right.onParcel }) : (`<strong>Place of use</strong>${pou.siteName ? `<br>${pou.siteName}` : ''}`), { maxWidth: 300, minWidth: 220 });
+    }).bindPopup(window.buildRightPopup ? window.buildRightPopup(pou, 'NV', { onParcel: pou.onParcel }) : (`<strong>Place of use</strong>${pou.siteName ? `<br>${pou.siteName}` : ''}`), { maxWidth: 300, minWidth: 220 });
     poly.addTo(leafletMap);
     rightsLayers.push(poly);
   });
@@ -426,6 +426,9 @@ async function handlePointSelected(lat, lng){
     cardsContainer.innerHTML = cardsHtml;
     cardsHint.textContent = `Searched ${data.fetchedCount} point${data.fetchedCount === 1 ? '' : 's'} of diversion within ${data.searchRadiusMiles.toFixed(1)} miles.`;
     cardsPanel.style.display = 'block';
+    // Whether the State Engineer has designated this basin, above the
+    // rights themselves — it changes how every one of them should be read.
+    if(window.renderAdministrativeAreas) window.renderAdministrativeAreas(data.administrative, cardsPanel);
 
     const parcelRings = data.parcel && !data.parcel.error && !data.parcel.notFound ? data.parcel.rings : null;
     if(parcelRings && parcelRings.length > 0){
@@ -546,6 +549,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
+<script src="/admin-areas.js"></script>
 <script src="/right-popup.js"></script>
 <script src="/gps-accuracy.js"></script>
 <script src="/offline-areas.js"></script>
