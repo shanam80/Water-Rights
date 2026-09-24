@@ -9,7 +9,7 @@
   const STATE_PAGES = {
     '/': 'CO', '/index.html': 'CO', '/idaho.html': 'ID', '/utah.html': 'UT',
     '/montana.html': 'MT', '/nevada.html': 'NV', '/texas.html': 'TX',
-    '/wyoming.html': 'WY', '/well-logs.html': 'NM',
+    '/wyoming.html': 'WY', '/newmexico.html': 'NM_WATER', '/well-logs.html': 'NM',
   };
 
   function currentState() {
@@ -19,6 +19,9 @@
   }
 
   function apiUrlFor(state, lat, lon, radius) {
+    // New Mexico water rights are a separate tool from the NM well logs,
+    // so they carry a distinct key rather than colliding on 'NM'.
+    if (state === 'NM_WATER') return `/api/new-mexico/water-rights?lat=${lat}&lon=${lon}&radius=${radius}`;
     if (state === 'NM' || (state === 'TX' && location.pathname === '/well-logs.html')) {
       return `/api/well-logs?state=${state}&lat=${lat}&lon=${lon}&radius=${radius}`;
     }
@@ -123,7 +126,7 @@
   // written. Purely additive — the original response is passed through
   // untouched, and any failure here is swallowed so a lookup can never
   // break because of the offline layer.
-  const POINT_SEARCH = /\/api\/(colorado|idaho|utah|montana|nevada|wyoming|texas\/wells|well-logs)(\/|\?)/;
+  const POINT_SEARCH = /\/api\/(colorado|idaho|utah|montana|nevada|new-mexico|wyoming|texas\/wells|well-logs)(\/|\?)/;
   const nativeFetch = window.fetch.bind(window);
   window.fetch = function (input, init) {
     const url = typeof input === 'string' ? input : (input && input.url) || '';

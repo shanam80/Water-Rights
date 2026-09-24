@@ -181,3 +181,10 @@ CREATE TABLE IF NOT EXISTS well_log_inventory (
 -- just downloads — so the page says which before the click.
 ALTER TABLE well_log_inventory ADD COLUMN IF NOT EXISTS log_format TEXT;
 ALTER TABLE well_log_inventory ADD COLUMN IF NOT EXISTS image_size TEXT;
+
+-- New Mexico added 2026-09-24 alongside its water-rights page. NM file
+-- numbers (e.g. RG-00872) are verifiable against the OSE POD layer, so its
+-- listings can be checked the same way the other states' are.
+ALTER TABLE listings DROP CONSTRAINT IF EXISTS listings_state_check;
+ALTER TABLE listings ADD CONSTRAINT listings_state_check
+  CHECK (state IN ('CO', 'ID', 'UT', 'MT', 'NV', 'NM', 'TX', 'WY'));

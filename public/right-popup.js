@@ -36,6 +36,14 @@
       ['Diversion rate', 'diversionRateCfs', ' cfs'],
       ['Place of use', 'placeOfUseAcres', ' acres'],
     ],
+    NM: [
+      ['Status', 'status'], ['Well status', 'podStatus'], ['Use', 'use'],
+      ['Basin', 'basin'], ['County', 'county'],
+      ['Surface source', 'surfaceSource'], ['Groundwater', 'groundwaterSource'],
+      ['Well depth', 'wellDepthFt', ' ft'],
+      ['Static water level', 'staticLevelFt', ' ft'],
+      ['Discharge', 'dischargeGpm', ' gpm'],
+    ],
     WY: [
       ['Status', 'status'], ['Type', 'facilityType'], ['Uses', 'uses'],
       ['Priority', 'priorityDate'], ['Source', 'streamSource'],
@@ -50,6 +58,7 @@
     UT: (r) => r.owner || 'Water right',
     MT: (r) => r.owners || r.reservoirName || 'Water right',
     NV: (r) => r.siteName || 'Point of diversion',
+    NM: (r) => r.owner || r.podName || 'Point of diversion',
     WY: (r) => r.facilityName || r.owner || r.kind || 'Water right',
   };
 
@@ -58,6 +67,7 @@
     UT: (r) => (r.wrNumber ? 'WR ' + r.wrNumber : null),
     MT: (r) => (r.wrNumber ? 'WR ' + r.wrNumber : null),
     NV: (r) => (r.appNumber ? 'App ' + r.appNumber : null),
+    NM: (r) => (r.fileNumber ? 'File ' + r.fileNumber : null),
     WY: (r) => (r.wrNumber ? 'WR ' + r.wrNumber : r.permitNumber ? 'Permit ' + r.permitNumber : null),
   };
 

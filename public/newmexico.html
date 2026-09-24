@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9FH9BSHC9Q"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag("js", new Date());
+  gtag("config", "G-9FH9BSHC9Q");
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcreFoot | New Mexico Water Rights</title>
+<meta name="description" content="Free New Mexico water rights lookup by address or map. Live points of diversion from the Office of the State Engineer, with owner, priority, use, well depth and a link to the official record.">
+<link rel="canonical" href="https://acrefoot.io/newmexico.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AcreFoot | New Mexico Water Rights">
+<meta property="og:description" content="Free New Mexico water rights lookup by address or map. Live points of diversion from the Office of the State Engineer.">
+<meta property="og:url" content="https://acrefoot.io/newmexico.html">
+<meta name="twitter:card" content="summary">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#2b6777">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AcreFoot">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --bg: #f6f3ec; --panel: #fffdf8; --ink: #1e2a24; --ink-soft: #52605a;
+    --river: #2b6777; --river-deep: #1c4552; --clay: #a8643f; --moss: #3f6b4a;
+    --line: #ddd6c4; --amber: #b8863a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter', sans-serif;line-height:1.5;}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 80px;}
+  header{margin-bottom:32px;}
+  .brand-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .brand-logo{font-family:'Fraunces', serif;font-weight:700;font-size:20px;color:var(--river-deep);text-decoration:none;letter-spacing:-0.01em;}
+  .brand-logo:hover{color:var(--river);}
+  .state-nav{font-family:'JetBrains Mono', monospace; font-size:12px;}
+  .state-nav a{color:var(--ink-soft); text-decoration:none; padding:4px 8px; border-radius:5px;}
+  .state-nav a.current{color:var(--river); font-weight:600; background:#eaf1f2;}
+  .state-nav a:hover{text-decoration:underline;}
+  .state-nav .nav-sep{color:var(--line);margin:0 2px;}
+  .eyebrow{font-family:'JetBrains Mono', monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--river);margin-bottom:10px;}
+  h1{font-family:'Fraunces', serif;font-weight:700;font-size:clamp(28px,4vw,42px);margin:0 0 12px;color:var(--river-deep);letter-spacing:-0.01em;}
+  .sub{color:var(--ink-soft);font-size:16px;max-width:62ch;}
+  .hook{font-size:17px;color:var(--ink);font-weight:600;margin:0 0 8px;max-width:62ch;}
+  .personas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0 0;}
+  .persona{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px;}
+  .persona h3{font-family:'Fraunces',serif;font-size:14.5px;margin:0 0 5px;color:var(--river-deep);}
+  .persona p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.45;}
+  .persona a{color:var(--river);}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:24px;}
+  .panel h2{font-family:'Fraunces', serif;font-size:19px;margin:0 0 4px;color:var(--ink);}
+  .panel .hint{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
+  form{display:flex;flex-wrap:wrap;gap:12px;align-items:end;}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px;}
+  label{font-size:13px;font-weight:500;color:var(--ink-soft);}
+  input{padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Inter',sans-serif;font-size:14px;background:#fff;color:var(--ink);}
+  input:focus{outline:2px solid var(--river);outline-offset:1px;}
+  button{padding:11px 20px;background:var(--river);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+  button:hover{background:var(--river-deep);}
+  button:disabled{background:#a9b3af;cursor:wait;}
+  .status{font-size:14px;color:var(--ink-soft);margin-top:14px;min-height:20px;}
+  .status.error{color:var(--clay);font-weight:500;}
+  .method-toggle{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .method-toggle button{background:#fff;color:var(--ink-soft);border:1px solid var(--line);font-weight:500;padding:8px 14px;}
+  .method-toggle button.active{background:var(--river);color:#fff;border-color:var(--river);}
+  .method-panel{display:none;}
+  .method-panel.active{display:block;}
+  #map{height:380px;border-radius:8px;border:1px solid var(--line);margin-top:4px;}
+  .map-hint{font-size:12.5px;color:var(--ink-soft);margin:10px 0 0;}
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(270px, 1fr));gap:16px;}
+  .right-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:#fdfbf5;}
+  .right-card h3{font-family:'Fraunces', serif;font-size:16px;margin:0 0 4px;color:var(--river-deep);}
+  .right-card .id-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin-bottom:10px;}
+  .right-card .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px;flex-wrap:wrap;}
+  .right-card .row:last-of-type{border-bottom:none;}
+  .right-card .row dt{color:var(--ink-soft);}
+  .right-card .row dd{margin:0;text-align:right;font-weight:500;word-break:break-word;min-width:0;}
+  .distance-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--river-deep);background:#eaf1f2;padding:2px 8px;border-radius:5px;margin-bottom:10px;}
+  .record-link{display:inline-block;margin-top:12px;background:#fff;color:var(--river);border:1px solid var(--river);padding:7px 13px;font-size:12.5px;border-radius:6px;text-decoration:none;font-weight:600;}
+  .record-link:hover{background:var(--river);color:#fff;}
+  .note{margin-top:12px;padding:10px 12px;border-radius:7px;font-size:13px;line-height:1.45;}
+  .note.warn{background:#fbf3e4;color:var(--amber);}
+  .source-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:6px;display:inline-block;margin-top:6px;}
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
+  footer a{color:var(--river);}
+  details summary{cursor:pointer;font-size:12.5px;color:var(--river);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand-bar">
+      <a href="/" class="brand-logo">AcreFoot</a>
+      <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/montana.html">Montana</a> · <a href="/nevada.html">Nevada</a> · <a href="/newmexico.html" class="current">New Mexico</a> · <a href="/texas.html">Texas</a> · <a href="/wyoming.html">Wyoming</a> · <span class="nav-sep">|</span> <a href="/well-logs.html">Well Logs</a> · <a href="/marketplace.html">Marketplace</a></nav>
+    </div>
+    <div class="eyebrow">Live data · New Mexico</div>
+    <h1>New Mexico Water Rights Lookup</h1>
+    <p class="hook">Does this property have water rights? Find out in seconds — free, and without making an account.</p>
+    <p class="sub">Search real records from the New Mexico Office of the State Engineer's Points of Diversion dataset — the wells, surface declarations and permits the OSE actually administers. Every code here is translated using the state's own published data dictionary, not guesswork.</p>
+
+    <div class="personas">
+      <div class="persona">
+        <h3>Landowners &amp; ranchers</h3>
+        <p>See the points of diversion near your land, who holds them, what they're used for, and how deep the well was drilled.</p>
+      </div>
+      <div class="persona">
+        <h3>Buying or selling land</h3>
+        <p>Check the water before you close — file number, owner, status, use, and a direct link to the state's official record for each one.</p>
+      </div>
+      <div class="persona">
+        <h3>Water professionals</h3>
+        <p>Every raw OSE field is one click away on each result. <a href="/professional.html">Tell us what you'd need</a> from a bulk or API tier.</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>Find water rights near a property</h2>
+    <p class="hint">Search by address or tap a location on the map.</p>
+
+    <div class="method-toggle">
+      <button type="button" data-method="address" class="active">Address</button>
+      <button type="button" data-method="map">Tap the map</button>
+    </div>
+
+    <div class="method-panel active" id="method-address">
+      <form id="addressForm">
+        <div class="field">
+          <label for="address">Street address</label>
+          <input type="text" id="address" placeholder="e.g. 1 Civic Plaza NW, Albuquerque" autocomplete="off">
+        </div>
+        <button type="submit" id="findBtn">Find</button>
+      </form>
+      <p class="map-hint">Include the city — the state is assumed to be New Mexico.</p>
+    </div>
+
+    <div class="method-panel" id="method-map">
+      <div id="map"></div>
+      <p class="map-hint">Tap or click anywhere in New Mexico. Works on phones too.</p>
+      <button type="button" id="gpsBtn" style="background:#fff;color:var(--river);border:1px solid var(--river);margin-top:10px;">📍 Use my location</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="panel" id="resultsPanel" style="display:none;">
+    <h2>Points of diversion</h2>
+    <p class="hint" id="resultsHint"></p>
+    <div id="cards" class="cards-grid"></div>
+  </div>
+
+  <footer>
+    <p><strong>What this is:</strong> live data from the New Mexico Office of the State Engineer's Points of Diversion layer — 279,991 records statewide, current as of September 2026 — pulled through this project's own backend. Field codes are decoded using OSE's own published data dictionary, so a status of "DCL" reads as "Declaration" and a county of "BE" as "Bernalillo" in the agency's own wording.</p>
+    <p><strong>What this isn't:</strong> a complete record, and the OSE says so itself. Its own description of this layer states the data "are not complete, not all locations have been recorded in spatial data, and an exhaustive search can only be done by the NMOSE themselves." So nothing found here is proof nothing exists — for a definitive answer, go to the OSE directly. New Mexico also records points of diversion rather than place-of-use areas, so unlike Idaho or Nevada there's no shape showing which ground a right actually serves.</p>
+    <p><strong>Also worth knowing:</strong> a well depth or water level of 0 in these records means "not recorded", not "at the surface", so those are shown as unknown rather than as a misleading zero. Parcel ownership and a separate well-construction dataset haven't been researched for New Mexico yet.</p>
+    <div class="source-tag">Sources: services2.arcgis.com (OSE Points of Diversion, via the OSE's own open-data hub) · nmwrrs.ose.nm.gov (official records) · geocoding.geo.census.gov (geocoding only) · OpenStreetMap (map tiles)</div>
+    <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback. Water rights professional? <a href="/professional.html" style="color:var(--river);">Tell us what you need</a>.</p>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/basemaps.js"></script>
+<script>
+let leafletMap = null, clickMarker = null, resultLayers = [];
+
+function setStatus(msg, isError){
+  const el = document.getElementById('status');
+  el.textContent = msg || '';
+  el.className = 'status' + (isError ? ' error' : '');
+}
+function serverErrorMessage(err){
+  return (err && err.message) ? err.message : 'Something went wrong. Please try again.';
+}
+function esc(v){
+  return String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+document.querySelectorAll('.method-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.method-toggle button').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('method-' + btn.dataset.method).classList.add('active');
+    if(btn.dataset.method === 'map') initMap();
+  });
+});
+
+function initMap(){
+  if(leafletMap){ setTimeout(() => leafletMap.invalidateSize(), 60); return; }
+  leafletMap = L.map('map').setView([34.4, -106.1], 6);
+  addBaseLayers(leafletMap, { maxZoom: 19 });
+  leafletMap.on('click', (e) => handlePointSelected(e.latlng.lat, e.latlng.lng));
+  setTimeout(() => leafletMap.invalidateSize(), 60);
+}
+
+// ---------- Geocoding (JSONP — Census doesn't support direct CORS fetch) ----------
+function geocode(address){
+  return new Promise((resolve, reject) => {
+    const cb = 'geo_cb_' + Math.random().toString(36).slice(2);
+    const timer = setTimeout(() => { cleanup(); reject(new Error('The address lookup timed out. Please try again.')); }, 15000);
+    function cleanup(){ clearTimeout(timer); delete window[cb]; const s = document.getElementById(cb); if(s) s.remove(); }
+    window[cb] = (data) => {
+      cleanup();
+      const m = data && data.result && data.result.addressMatches && data.result.addressMatches[0];
+      if(!m) return reject(new Error('No match for that address. Try including the city.'));
+      resolve({ lat: m.coordinates.y, lon: m.coordinates.x });
+    };
+    const s = document.createElement('script');
+    s.id = cb;
+    s.src = 'https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=' +
+      encodeURIComponent(address + ', New Mexico') + '&benchmark=Public_AR_Current&format=jsonp&callback=' + cb;
+    s.onerror = () => { cleanup(); reject(new Error('Could not reach the address lookup service.')); };
+    document.body.appendChild(s);
+  });
+}
+
+document.getElementById('addressForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const address = document.getElementById('address').value.trim();
+  if(!address) return setStatus('Enter an address first.', true);
+  const btn = document.getElementById('findBtn');
+  btn.disabled = true;
+  setStatus('Looking up that address…');
+  try {
+    const point = await geocode(address);
+    await handlePointSelected(point.lat, point.lon);
+  } catch(err){
+    setStatus(serverErrorMessage(err), true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('gpsBtn').addEventListener('click', () => {
+  if(!navigator.geolocation) return setStatus('This browser does not support location lookup.', true);
+  setStatus('Getting your location…');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => handlePointSelected(pos.coords.latitude, pos.coords.longitude),
+    (err) => setStatus(
+      err.code === err.PERMISSION_DENIED
+        ? 'Location permission was denied. Search by address instead.'
+        : 'Could not get your location. Search by address instead.', true),
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+});
+
+// ---------- Search ----------
+async function handlePointSelected(lat, lon){
+  setStatus('Searching New Mexico points of diversion…');
+  const radius = window.getSearchRadius ? window.getSearchRadius() : 1;
+  try {
+    const res = await fetch(`/api/new-mexico/water-rights?lat=${lat}&lon=${lon}&radius=${radius}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+    renderResults(data, lat, lon);
+    setStatus('Done — pulled live from the NM Office of the State Engineer.');
+  } catch(err){
+    setStatus(serverErrorMessage(err), true);
+  }
+}
+
+function buildCard(r){
+  const rows = [];
+  if(r.owner) rows.push(['Owner', r.owner]);
+  if(r.status) rows.push(['Status', r.status]);
+  if(r.podStatus) rows.push(['Well status', r.podStatus]);
+  if(r.use) rows.push(['Use', r.use]);
+  if(r.basin) rows.push(['Basin', r.basin]);
+  if(r.county) rows.push(['County', r.county]);
+  if(r.surfaceSource) rows.push(['Surface source', r.surfaceSource]);
+  if(r.groundwaterSource) rows.push(['Groundwater', r.groundwaterSource]);
+  if(r.wellDepthFt) rows.push(['Well depth', r.wellDepthFt.toLocaleString() + ' ft']);
+  if(r.staticLevelFt) rows.push(['Static water level', r.staticLevelFt.toLocaleString() + ' ft']);
+  if(r.dischargeGpm) rows.push(['Discharge', r.dischargeGpm.toLocaleString() + ' gpm']);
+  if(r.pumpType) rows.push(['Pump', r.pumpType]);
+  if(r.totalDiversionAF) rows.push(['Total diversion', r.totalDiversionAF.toLocaleString() + ' acre-feet']);
+  if(r.startDate) rows.push(['Drilling started', r.startDate.plain]);
+  if(r.finishDate) rows.push(['Completed', r.finishDate.plain]);
+  if(r.plugDate) rows.push(['Plugged', r.plugDate.plain]);
+  if(r.legalLocation) rows.push(['Legal location', r.legalLocation]);
+
+  const missingDepth = !r.wellDepthFt && !r.staticLevelFt;
+
+  return `
+    <div class="right-card">
+      ${typeof r.distanceMiles === 'number' ? `<div class="distance-tag">${r.distanceMiles < 0.1 ? 'At this location' : r.distanceMiles.toFixed(1) + ' mi away'}</div>` : ''}
+      <h3>${esc(r.owner || r.podName || r.fileNumber || 'Point of diversion')}</h3>
+      <div class="id-tag">${esc(r.fileNumber || 'No file number')}</div>
+      <dl>${rows.map(([k,v]) => `<div class="row"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+      ${missingDepth ? '<div class="note warn">No well depth or water level on record for this point. OSE stores unrecorded values as zero, so this is genuinely unknown rather than a shallow well.</div>' : ''}
+      ${r.officialRecordUrl ? `<a class="record-link" href="${esc(r.officialRecordUrl)}" target="_blank" rel="noopener">📄 Official OSE record</a>` : ''}
+      <details style="margin-top:12px;"><summary>Show all fields</summary>
+        <dl style="margin-top:8px;">${Object.entries(r.raw || {}).filter(([,v]) => v !== null && String(v).trim() !== '').map(([k,v]) =>
+          `<div class="row"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+      </details>
+    </div>`;
+}
+
+function renderResults(data, lat, lon){
+  const panel = document.getElementById('resultsPanel');
+  panel.style.display = 'block';
+
+  document.getElementById('resultsHint').textContent = data.rights.length === 0
+    ? `No points of diversion on record within ${data.searchRadiusMiles} mile${data.searchRadiusMiles === 1 ? '' : 's'} of this spot. That's a real result from the state's data — but OSE says its own records aren't complete, so it isn't proof none exist.`
+    : `Showing ${data.rights.length} of ${data.fetchedCount} within ${data.searchRadiusMiles} mile${data.searchRadiusMiles === 1 ? '' : 's'}, nearest first.${data.truncated ? ' Narrow the radius to see fewer.' : ''}`;
+
+  document.getElementById('cards').innerHTML = data.rights.map(buildCard).join('');
+
+  if(leafletMap){
+    resultLayers.forEach(l => leafletMap.removeLayer(l));
+    resultLayers = [];
+    if(clickMarker) leafletMap.removeLayer(clickMarker);
+    clickMarker = L.circleMarker([lat, lon], { radius: 7, color: '#a8643f', fillColor: '#a8643f', fillOpacity: 0.9, weight: 2 })
+      .addTo(leafletMap).bindTooltip('Your search point');
+
+    data.rights.forEach(r => {
+      if(!r.location) return;
+      const m = L.circleMarker([r.location.lat, r.location.lon], {
+        radius: 6, color: '#fff', weight: 1.5, fillColor: '#2b6777', fillOpacity: 0.9
+      }).addTo(leafletMap);
+      if(window.buildRightPopup){
+        m.bindPopup(window.buildRightPopup(r, 'NM', { onParcel: false }), { maxWidth: 300, minWidth: 220 });
+      }
+      resultLayers.push(m);
+    });
+
+    const pts = data.rights.filter(r => r.location).map(r => [r.location.lat, r.location.lon]);
+    pts.push([lat, lon]);
+    if(pts.length > 1) leafletMap.fitBounds(L.latLngBounds(pts), { padding: [30, 30] });
+    else leafletMap.setView([lat, lon], 13);
+    setTimeout(() => leafletMap.invalidateSize(), 60);
+  }
+
+  if(window.__pwaAfterSearch) window.__pwaAfterSearch(data, lat, lon, data.searchRadiusMiles);
+}
+</script>
+<script>
+(function(){
+  window.__pwaAfterSearch = function(payload, lat, lon, radiusMiles){
+    try {
+      if(window.maybeOfferInstall) window.maybeOfferInstall();
+      const panels = document.querySelectorAll('.panel');
+      const panel = panels[panels.length - 1];
+      if(window.attachOfflineSave && panel && payload){
+        window.attachOfflineSave(panel, {
+          state: 'NM_WATER', lat, lon,
+          radiusMiles: radiusMiles || 1,
+          payload,
+          label: 'New Mexico · ' + lat.toFixed(4) + ', ' + lon.toFixed(4)
+        });
+      }
+    } catch(err){ /* the lookup itself must never fail because of this */ }
+  };
+})();
+</script>
+<script src="/admin-areas.js"></script>
+<script src="/right-popup.js"></script>
+<script src="/gps-accuracy.js"></script>
+<script src="/offline-areas.js"></script>
+<script src="/offline-ui.js"></script>
+<script src="/radius.js"></script>
+<script src="/coords.js"></script>
+<script src="/pwa.js" defer></script>
+</body>
+</html>

@@ -116,7 +116,7 @@
   <header>
     <div class="brand-bar">
       <a href="/" class="brand-logo">AcreFoot</a>
-      <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/montana.html">Montana</a> · <a href="/nevada.html">Nevada</a> · <a href="/texas.html">Texas</a> · <a href="/wyoming.html">Wyoming</a> · <span class="nav-sep">|</span> <a href="/well-logs.html">Well Logs</a> · <a href="/marketplace.html" class="current">Marketplace</a></nav>
+      <nav class="state-nav"><a href="/">Colorado</a> · <a href="/idaho.html">Idaho</a> · <a href="/utah.html">Utah</a> · <a href="/montana.html">Montana</a> · <a href="/nevada.html">Nevada</a> · <a href="/newmexico.html">New Mexico</a> · <a href="/texas.html">Texas</a> · <a href="/wyoming.html">Wyoming</a> · <span class="nav-sep">|</span> <a href="/well-logs.html">Well Logs</a> · <a href="/marketplace.html" class="current">Marketplace</a></nav>
     </div>
     <div class="eyebrow">Marketplace · v1</div>
     <h1>Water Rights Marketplace</h1>
@@ -140,6 +140,7 @@
             <option value="UT">Utah</option>
             <option value="MT">Montana</option>
             <option value="NV">Nevada</option>
+              <option value="NM">New Mexico</option>
             <option value="TX">Texas</option>
             <option value="WY">Wyoming</option>
           </select>
@@ -161,6 +162,7 @@
             <option value="UT">Utah</option>
             <option value="MT">Montana</option>
             <option value="NV">Nevada</option>
+              <option value="NM">New Mexico</option>
             <option value="TX">Texas</option>
             <option value="WY">Wyoming</option>
           </select>
@@ -233,7 +235,7 @@
 </div>
 
 <script>
-const STATE_LABELS = { CO: 'Colorado', ID: 'Idaho', UT: 'Utah', MT: 'Montana', NV: 'Nevada', TX: 'Texas', WY: 'Wyoming' };
+const STATE_LABELS = { CO: 'Colorado', ID: 'Idaho', UT: 'Utah', MT: 'Montana', NV: 'Nevada', NM: 'New Mexico', TX: 'Texas', WY: 'Wyoming' };
 
 function fmtPrice(listing){
   if(listing.askingPriceUsd === null || listing.askingPriceUsd === undefined) return 'Contact for price';

@@ -12,6 +12,7 @@ const marketplaceRoutes = require('./routes/marketplace');
 const contactRoutes = require('./routes/contact');
 const professionalInterestRoutes = require('./routes/professionalInterest');
 const wellLogsRoutes = require('./routes/wellLogs');
+const newMexicoRoutes = require('./routes/newMexico');
 const savedSearchesRoutes = require('./routes/savedSearches');
 const { checkAllSavedSearches } = require('./services/savedSearches');
 
@@ -35,6 +36,7 @@ app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/professional-interest', professionalInterestRoutes);
 app.use('/api/well-logs', wellLogsRoutes);
+app.use('/api/new-mexico', newMexicoRoutes);
 app.use('/api/saved-searches', savedSearchesRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));

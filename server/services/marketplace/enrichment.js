@@ -17,6 +17,7 @@ const { getWaterRightByNumber } = require('../idaho/waterRights');
 const { getWaterRightByNumber: getMontanaRight } = require('../montana/waterRights');
 const { getWaterRightByAppNumber: getNevadaRight } = require('../nevada/waterRights');
 const { getWaterRightByNumber: getWyomingRight } = require('../wyoming/waterRights');
+const { getWaterRightByFileNumber } = require('../newMexico/waterRights');
 
 async function enrichListing(state, rightIdentifier) {
   if (!rightIdentifier || !rightIdentifier.trim()) return null;
@@ -94,6 +95,27 @@ async function enrichListing(state, rightIdentifier) {
         status: right.status?.label ? `${right.status.label}${right.status.inactive ? ' (inactive)' : ''}` : right.statusCode,
         waterSource: right.source,
         county: right.county?.label || null,
+        officialRecordUrl: right.officialRecordUrl,
+        checkedAt: new Date().toISOString(),
+      };
+    }
+
+    // New Mexico verifies by file number (e.g. RG-00872), the identifier a
+    // NM right is actually referred to by. Codes are decoded from OSE's own
+    // published data dictionary, so these labels are the agency's wording.
+    if (state === 'NM') {
+      const right = await getWaterRightByFileNumber(id);
+      if (!right) return { verified: false, state, rightIdentifier: id, checkedAt: new Date().toISOString() };
+      return {
+        verified: true,
+        state,
+        rightIdentifier: id,
+        name: right.owner || right.podName || `File ${right.fileNumber}`,
+        status: right.status,
+        use: right.use,
+        waterSource: right.surfaceSource || right.groundwaterSource || null,
+        county: right.county,
+        basin: right.basin,
         officialRecordUrl: right.officialRecordUrl,
         checkedAt: new Date().toISOString(),
       };
