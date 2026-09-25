@@ -24,10 +24,30 @@
   // ---------- Service worker ----------
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        // Ask the browser to re-check for a new worker on every load. Without
+        // this it may keep an old one for up to a day, which is how a shipped
+        // change can stay invisible to returning visitors.
+        reg.update().catch(() => {});
+      }).catch((err) => {
         console.warn('Service worker registration failed:', err.message);
       });
     });
+
+    // When a new worker takes over, the caches it replaced are gone but this
+    // page is still showing whatever the old one served. Reload once so the
+    // change is actually visible rather than waiting for a second visit.
+    // Guarded so a worker that keeps re-claiming can't loop the page.
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      // Only reload if a worker was already in control — on a first-ever
+      // visit the page is current and a reload would just be a flash.
+      if (read('acrefoot_sw_seen')) window.location.reload();
+      store('acrefoot_sw_seen', '1');
+    });
+    if (navigator.serviceWorker.controller) store('acrefoot_sw_seen', '1');
   }
 
   // ---------- Launch source ----------

@@ -10,7 +10,17 @@
 //
 // Version the cache names to ship an update. Bump SW_VERSION and old caches
 // are dropped on activate.
-const SW_VERSION = 'v1';
+//
+// BUMP THIS WHENEVER A PAGE, NAV LINK OR SHARED SCRIPT CHANGES. Pages are
+// served stale-while-revalidate, so without a bump a returning visitor keeps
+// seeing the copy already on their device until a second visit. That is not
+// hypothetical: adding New Mexico to the nav shipped correctly to the server
+// but stayed invisible to anyone who had used the site before, because their
+// browser kept serving the older page. pwa.js now reloads once when a new
+// worker takes over, so a bump is what makes a change actually appear.
+//
+// v2 — New Mexico added to the nav (2026-09-25)
+const SW_VERSION = 'v2';
 const SHELL_CACHE = `acrefoot-shell-${SW_VERSION}`;
 const PAGE_CACHE = `acrefoot-pages-${SW_VERSION}`;
 const API_CACHE = `acrefoot-api-${SW_VERSION}`;
@@ -29,6 +39,11 @@ const SHELL_ASSETS = [
   '/coords.js',
   '/radius.js',
   '/pwa.js',
+  '/right-popup.js',
+  '/admin-areas.js',
+  '/offline-areas.js',
+  '/offline-ui.js',
+  '/gps-accuracy.js',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
