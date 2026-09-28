@@ -1,6 +1,7 @@
 const express = require('express');
 const { fetchParcelAtPoint } = require('../services/montana/parcels');
 const { searchWaterRightsByCounty, searchWaterRightsNearPoint } = require('../services/montana/waterRights');
+const { getAdministrativeAreas } = require('../services/administrativeAreas');
 
 const router = express.Router();
 
@@ -63,7 +64,15 @@ router.get('/water-rights', async (req, res) => {
     // against each record's computed distance.
     const radiusMiles = req.query.radius ? Math.min(Math.max(Number(req.query.radius), 0.1), 25) : null;
     const result = await searchWaterRightsNearPoint(county, latN, lonN, { parcelRings, radiusMiles });
-    res.json({ parcel, ...result });
+    // Enforcement areas and basin decree stage. Only available when the
+    // caller gave a point — the county-only search has nowhere to test.
+    let administrative = { supported: true, areas: [] };
+    try {
+      administrative = await getAdministrativeAreas('MT', latN, lonN);
+    } catch (err) {
+      console.error('Montana administrative lookup failed:', err.message);
+    }
+    res.json({ parcel, ...result, administrative });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

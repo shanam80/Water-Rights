@@ -54,7 +54,7 @@
     if (areas.length === 0) {
       box.innerHTML = `<div class="admin-clear">
         <strong>No special administrative restriction found at this point.</strong>
-        This point isn't inside a critical, managed, moratorium or designated area on the state's own boundary layers. That isn't a guarantee a right here is free from curtailment — it means no area-wide restriction covers this spot.
+        This point isn't inside any of the restricted, managed, designated or actively distributed areas on the state's own boundary layers. That isn't a guarantee a right here is free from curtailment — it means no area-wide restriction covers this spot.
       </div>`;
       return;
     }
@@ -64,7 +64,7 @@
         <div class="aa-head">${esc(a.kind)}${a.name ? ': ' + esc(a.name) : ''}</div>
         <div>${esc(a.note)}</div>
         ${a.detail || a.documentUrl ? `<div class="aa-detail">${a.detail ? esc(a.detail) : ''}${
-          a.documentUrl ? ` · <a href="${esc(a.documentUrl)}" target="_blank" rel="noopener">Read the order</a>` : ''
+          a.documentUrl ? ` · <a href="${esc(a.documentUrl)}" target="_blank" rel="noopener">${esc(a.documentLabel || 'Read the order')}</a>` : ''
         }</div>` : ''}
       </div>`).join('');
   };

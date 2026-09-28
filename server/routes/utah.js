@@ -2,6 +2,7 @@ const express = require('express');
 const { findNearbyWaterRights } = require('../services/utah/waterRights');
 const { findNearbyWellLogs, scrapeWellLog } = require('../services/utah/wells');
 const { fetchParcelAtPoint } = require('../services/utah/parcels');
+const { getAdministrativeAreas } = require('../services/administrativeAreas');
 
 const router = express.Router();
 
@@ -24,7 +25,16 @@ router.get('/water-rights', async (req, res) => {
   const radiusMiles = req.query.radius ? Math.min(Math.max(Number(req.query.radius), 0.1), 25) : null;
   try {
     const result = await findNearbyWaterRights(point.lat, point.lon, radiusMiles);
-    res.json(result);
+    // Which water right area governs here, and whether a local policy or
+    // area of concern applies on top of it. Best-effort — the rights
+    // themselves matter more than the flag.
+    let administrative = { supported: true, areas: [] };
+    try {
+      administrative = await getAdministrativeAreas('UT', point.lat, point.lon);
+    } catch (err) {
+      console.error('Utah administrative lookup failed:', err.message);
+    }
+    res.json({ ...result, administrative });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

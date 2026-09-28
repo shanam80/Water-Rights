@@ -410,6 +410,9 @@ async function performPointSearch(county, lat, lon){
     }
 
     cardsContainer.innerHTML = cardsHtml;
+    // Enforcement and adjudication status for this point, above the rights
+    // themselves — it changes how every right below should be read.
+    if(window.renderAdministrativeAreas) window.renderAdministrativeAreas(data.administrative, cardsContainer.parentElement || cardsContainer);
     cardsHint.textContent = `Searched ${data.fetchedCount} water rights on file in ${county} County.`;
     cardsPanel.style.display = 'block';
 
@@ -574,6 +577,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
 <script src="/right-popup.js"></script>
+<script src="/admin-areas.js"></script>
 <script src="/gps-accuracy.js"></script>
 <script src="/offline-areas.js"></script>
 <script src="/offline-ui.js"></script>

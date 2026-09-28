@@ -1,6 +1,7 @@
 const express = require('express');
 const { findNearbyGroundwaterRights } = require('../services/wyoming/waterRights');
 const { fetchParcelAtPoint } = require('../services/wyoming/parcels');
+const { getAdministrativeAreas } = require('../services/administrativeAreas');
 
 const router = express.Router();
 
@@ -34,7 +35,15 @@ router.get('/water-rights', async (req, res) => {
     } catch (err) {
       parcel = { error: err.message };
     }
-    res.json({ parcel, ...result });
+    // Whether a groundwater control area governs this county. Best-effort,
+    // same as the parcel above.
+    let administrative = { supported: true, areas: [] };
+    try {
+      administrative = await getAdministrativeAreas('WY', point.lat, point.lon);
+    } catch (err) {
+      console.error('Wyoming administrative lookup failed:', err.message);
+    }
+    res.json({ parcel, ...result, administrative });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

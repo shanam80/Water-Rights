@@ -352,6 +352,9 @@ async function handlePointSelected(lat, lng){
       });
       rightsMarkersLayer = group.addTo(leafletMap);
     }
+    // Whether a groundwater control area governs this county, above the
+    // rights themselves — it changes how every right below should be read.
+    if(window.renderAdministrativeAreas) window.renderAdministrativeAreas(data.administrative, cardsContainer.parentElement || cardsContainer);
     cardsPanel.style.display = 'block';
     setStatus('Done — pulled live from the WSGS Groundwater Atlas (State Engineer\'s Office data).');
   } catch(err){
@@ -453,6 +456,7 @@ document.querySelectorAll('.method-btn').forEach(btn => {
 <script src="/radius.js"></script>
 <script src="/coords.js"></script>
 <script src="/right-popup.js"></script>
+<script src="/admin-areas.js"></script>
 <script src="/gps-accuracy.js"></script>
 <script src="/offline-areas.js"></script>
 <script src="/offline-ui.js"></script>
