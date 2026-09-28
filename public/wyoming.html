@@ -171,7 +171,7 @@
   <footer>
     <p><strong>What this is:</strong> live data pulled through this project's own backend from a public Wyoming State Geological Survey service (the "Groundwater Atlas"), sourced directly from the State Engineer's Office — Wyoming's real permitted groundwater wells and springs, each record combining the water right (WR number, priority date, status, use) with well construction detail (total depth, static water level) already on file.</p>
     <p><strong>What this isn't:</strong> surface-water rights, reservoirs, or a marketplace — those aren't available through this public route, same caveat as noted above.</p>
-    <div class="source-tag">Sources: Wyoming State Geological Survey Groundwater Atlas, sourced from the Wyoming State Engineer's Office · geocoding.geo.census.gov (U.S. Census, geocoding only) · OpenStreetMap (map tiles)</div>
+    <div class="source-tag">Sources: Wyoming State Geological Survey Groundwater Atlas, sourced from the Wyoming State Engineer's Office · Wyoming Statewide Parcel Viewer (Enterprise Technology Services with all 23 county assessors) · geocoding.geo.census.gov (U.S. Census, geocoding only) · OpenStreetMap (map tiles)</div>
     <p style="margin-top:16px;"><a href="/contact.html" style="color:var(--river);">Contact us</a> with questions or feedback. Water rights professional? <a href="/professional.html" style="color:var(--river);">Tell us what you need</a>.</p>
   </footer>
 
@@ -246,6 +246,53 @@ function buildRightCard(right){
   `;
 }
 
+// ---------- Parcel ----------
+// Wyoming's parcel layer comes from all 23 county assessors via the state's
+// own Statewide Parcel Viewer. The column names are the assessors' own
+// abbreviations, so they get relabelled rather than shown raw.
+const PARCEL_LABELS = {
+  ownername1: 'Owner', ownername2: 'Co-owner', locationad: 'Property address',
+  mailaddres: 'Mailing address', mailcity: 'Mailing city', mailstate: 'Mailing state',
+  mailzipcod: 'Mailing ZIP', legal: 'Legal description', landgrossa: 'Acres',
+  actualvalu: 'Actual value', assessedva: 'Assessed value',
+  parcelnb: 'Parcel number', accountno: 'Account number',
+  jurisdicti: 'County', taxyear: 'Tax year',
+};
+
+function parcelValue(key, v){
+  // Assessors store "not recorded" as 0 in the value and acreage columns, so
+  // a zero is suppressed rather than presented as a real figure — the same
+  // trap as the well depths elsewhere in this project.
+  if(v === null || v === undefined || String(v).trim() === '') return null;
+  if(key === 'landgrossa' || key === 'actualvalu' || key === 'assessedva'){
+    const n = Number(v);
+    if(!Number.isFinite(n) || n <= 0) return null;
+    return key === 'landgrossa' ? n.toLocaleString() + ' acres' : '$' + n.toLocaleString();
+  }
+  return String(v);
+}
+
+function renderParcelInfo(parcel){
+  if(!parcel) return '';
+  if(parcel.error) return `<p class="map-hint" style="color:var(--clay);">Parcel lookup failed: ${parcel.error}</p>`;
+  if(parcel.notFound) return `<p class="map-hint">No parcel found at this exact point in the statewide Wyoming dataset.</p>`;
+
+  const a = parcel.attributes || {};
+  const rows = Object.entries(PARCEL_LABELS)
+    .map(([k, label]) => [label, parcelValue(k, a[k])])
+    .filter(([, v]) => v)
+    .map(([label, v]) => `<div class="ci-row"><dt>${label}</dt><dd>${v}</dd></div>`)
+    .join('');
+
+  if(!rows) return `<p class="map-hint">A parcel covers this point, but the county recorded no details for it.</p>`;
+
+  const noOwner = !a.ownername1 || String(a.ownername1).trim() === '';
+  const caveat = noOwner
+    ? `<p class="map-hint">No owner name on record for this parcel. About one in ten Wyoming parcels has none — often public land or a recent transfer.</p>`
+    : '';
+  return `<dl>${rows}</dl>${caveat}`;
+}
+
 // ---------- Map ----------
 let leafletMap = null;
 let clickMarker = null;
@@ -277,6 +324,16 @@ async function handlePointSelected(lat, lng){
     const res = await fetch(`/api/wyoming/water-rights?lat=${lat}&lon=${lng}&radius=${window.getSearchRadius ? window.getSearchRadius() : 1}`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Server responded with status ${res.status}`);
+
+    // Whose land this is, shown above the rights themselves — it's the
+    // question people usually arrive with.
+    const parcelHtml = renderParcelInfo(data.parcel);
+    if(parcelHtml){
+      clickInfo.innerHTML =
+        `<dl><div class="ci-row"><dt>Coordinates</dt><dd>${lat.toFixed(5)}, ${lng.toFixed(5)}</dd></div></dl>` +
+        `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;"><strong>Parcel at this point</strong></div>` +
+        parcelHtml;
+    }
 
     if(data.rights.length === 0){
       cardsContainer.innerHTML = `<p class="map-hint">No wells or springs on file within about ${data.searchRadiusMiles.toFixed(1)} miles of this point — a genuine result (Wyoming's rural areas can be sparse in this dataset), not a sign of a broken connection.</p>`;

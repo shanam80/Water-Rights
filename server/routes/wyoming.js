@@ -1,5 +1,6 @@
 const express = require('express');
 const { findNearbyGroundwaterRights } = require('../services/wyoming/waterRights');
+const { fetchParcelAtPoint } = require('../services/wyoming/parcels');
 
 const router = express.Router();
 
@@ -25,6 +26,31 @@ router.get('/water-rights', async (req, res) => {
   const radiusMiles = req.query.radius ? Math.min(Math.max(Number(req.query.radius), 0.1), 25) : null;
   try {
     const result = await findNearbyGroundwaterRights(point.lat, point.lon, radiusMiles);
+    // Whose land this is. Best-effort — a parcel failure shouldn't cost
+    // someone their water-rights results.
+    let parcel = null;
+    try {
+      parcel = await fetchParcelAtPoint(point.lat, point.lon);
+    } catch (err) {
+      parcel = { error: err.message };
+    }
+    res.json({ parcel, ...result });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// GET /api/wyoming/parcel?lat=&lon=
+// Whatever parcel polygon (if any) contains this point, from the state's
+// own Statewide Parcel Viewer layer.
+router.get('/parcel', async (req, res) => {
+  const point = requireLatLon(req, res);
+  if (!point) return;
+  try {
+    const result = await fetchParcelAtPoint(point.lat, point.lon);
+    if (result.notFound) {
+      return res.status(404).json({ error: "No parcel found at this point in Wyoming's statewide dataset.", notFound: true });
+    }
     res.json(result);
   } catch (err) {
     res.status(502).json({ error: err.message });
