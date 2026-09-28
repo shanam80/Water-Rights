@@ -315,6 +315,12 @@ function renderResults(data, lat, lon){
     : `Showing ${data.rights.length} of ${data.fetchedCount} within ${data.searchRadiusMiles} mile${data.searchRadiusMiles === 1 ? '' : 's'}, nearest first.${data.truncated ? ' Narrow the radius to see fewer.' : ''}`;
 
   document.getElementById('cards').innerHTML = data.rights.map(buildCard).join('');
+  // Closures and management areas for this point, above the rights
+  // themselves — it changes how every right below should be read.
+  if(window.renderAdministrativeAreas){
+    const cards = document.getElementById('cards');
+    window.renderAdministrativeAreas(data.administrative, cards.parentElement || cards);
+  }
 
   if(leafletMap){
     resultLayers.forEach(l => leafletMap.removeLayer(l));

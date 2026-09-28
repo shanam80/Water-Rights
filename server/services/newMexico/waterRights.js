@@ -36,12 +36,9 @@
 // serve as a wells layer. It would only work as its own "aquifer tests near
 // here" feature, which is a new feature, not a gap in this one.
 //
-// Worth knowing, unbuilt: OSE also publishes DeclaredGroundwaterBasins on
-// this same host (39 polygons, verified to resolve Albuquerque to the Rio
-// Grande basin). Inside a declared basin a permit is required to drill;
-// outside one, groundwater is largely unregulated. That is the same class of
-// signal as services/administrativeAreas.js flags for the other states, and
-// New Mexico is not wired into it yet.
+// Restriction flagging for New Mexico lives in services/administrativeAreas.js
+// and draws on four more OSE layers from this same host — water right
+// regulations, AWRM basins, declared basins and adjudication areas.
 const { fetchWithTimeout } = require('../../lib/http');
 const { TtlCache } = require('../../lib/cache');
 const { haversineMiles } = require('../../lib/geo');

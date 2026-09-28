@@ -1,5 +1,6 @@
 const express = require('express');
 const { searchWaterRightsNearPoint } = require('../services/newMexico/waterRights');
+const { getAdministrativeAreas } = require('../services/administrativeAreas');
 
 const router = express.Router();
 
@@ -23,7 +24,15 @@ router.get('/water-rights', async (req, res) => {
   const radiusMiles = req.query.radius ? Math.min(Math.max(Number(req.query.radius), 0.1), 25) : null;
   try {
     const result = await searchWaterRightsNearPoint(point.lat, point.lon, radiusMiles);
-    res.json(result);
+    // Closures, critical management areas and the rest. Best-effort — the
+    // rights themselves matter more than the flag.
+    let administrative = { supported: true, areas: [] };
+    try {
+      administrative = await getAdministrativeAreas('NM', point.lat, point.lon);
+    } catch (err) {
+      console.error('New Mexico administrative lookup failed:', err.message);
+    }
+    res.json({ ...result, administrative });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

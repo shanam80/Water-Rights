@@ -380,12 +380,208 @@ async function wyomingAreas(lat, lon) {
   }];
 }
 
+// New Mexico: the best restriction data in the project, because OSE
+// publishes the actual rule text per area rather than only a boundary.
+//
+// Four layers, checked live 2026-09-28 on the OSE hub that already serves
+// this project's points of diversion:
+//
+//   WaterRight_Regulations      202 areas, and genuinely populated — the
+//                               regulation type is filled on all 202 and
+//                               the requirement text on 200. Contrast Utah,
+//                               whose RESTRICTED column is empty on all 211.
+//   AWRM                          7 priority basins under Active Water
+//                               Resource Management
+//   DeclaredGroundwaterBasins    39 basins
+//   AdjudicationAreas            28 areas
+//
+// The regulation note quotes OSE's own `requirements` wording rather than
+// paraphrasing it. These areas carry real legal terms — acre-foot caps,
+// which statute a well is filed under, whether applications are rejected
+// outright — and a summary of that is worth less than the sentence itself.
+const NMOSE = 'https://services2.arcgis.com/qXZbWTdPDbTjl7Dy/arcgis/rest/services';
+
+// The six codes present in the data. Expansions come from the layer's own
+// service description, which names exactly these categories, so none of
+// this is a guessed initialism.
+const NM_REG_TYPES = {
+  CA: {
+    kind: 'Closure Area',
+    severity: 'high',
+    meaning: 'The State Engineer has closed this area to new applications of at least one kind, which are rejected rather than reviewed.',
+  },
+  CMA: {
+    kind: 'Critical Management Area',
+    severity: 'high',
+    meaning: 'This area is managed as critical, which usually means no new appropriations and a hard cap on what a domestic well may take.',
+  },
+  QRA: {
+    kind: 'Quality Restriction Area',
+    severity: 'high',
+    meaning: 'New wells are restricted here to protect human health — typically contaminated groundwater or an active remediation site. Water quality, not availability, is the issue.',
+  },
+  SCA: {
+    kind: 'Special Conditions Area',
+    severity: 'medium',
+    meaning: 'Specific conditions apply to water use here, usually limiting how much a household may divert and consume.',
+  },
+  LOA: {
+    kind: 'Local Ordinance Area',
+    severity: 'medium',
+    meaning: 'A city, county or district ordinance applies on top of state rules, so a local permit is generally needed as well as the State Engineer’s.',
+  },
+  NEA: {
+    kind: 'Negative Easement Area',
+    severity: 'high',
+    meaning: 'This land was bought with a deed restriction that bars new water development, including domestic wells. These come from New Mexico’s obligations under the Pecos River Compact.',
+  },
+};
+
+async function newMexicoAreas(lat, lon) {
+  const [regs, awrm, basins, adjudications] = await Promise.all([
+    queryPoint(
+      `${NMOSE}/WaterRight_Regulations/FeatureServer/0`, lat, lon,
+      'Name,alt_name,reg_type,requirements,jurisdiction,effect_date,doc_reference,dom_well_limit,well_limit,Meters,Disclaimer'
+    ).catch((err) => { console.error('New Mexico regulation lookup failed:', err.message); return []; }),
+    queryPoint(`${NMOSE}/AWRM/FeatureServer/0`, lat, lon, 'name')
+      .catch((err) => { console.error('New Mexico AWRM lookup failed:', err.message); return []; }),
+    queryPoint(`${NMOSE}/DeclaredGroundwaterBasins/FeatureServer/0`, lat, lon, 'Basin,basin_desc')
+      .catch((err) => { console.error('New Mexico declared basin lookup failed:', err.message); return []; }),
+    queryPoint(`${NMOSE}/AdjudicationAreas/FeatureServer/0`, lat, lon, 'ADJ_NAME,MoreInfo')
+      .catch((err) => { console.error('New Mexico adjudication lookup failed:', err.message); return []; }),
+  ]);
+
+  const out = [];
+
+  for (const f of regs) {
+    const a = f.attributes;
+    const type = NM_REG_TYPES[clean(a.reg_type)] || {
+      kind: 'Water Right Regulation',
+      severity: 'medium',
+      meaning: 'A water right regulation applies to this area.',
+    };
+    const requirements = clean(a.requirements);
+    const jurisdiction = clean(a.jurisdiction);
+    const disclaimer = clean(a.Disclaimer);
+
+    // OSE marks the negative-easement parcels as provisional in the data
+    // itself, and says to check the deed at the County Clerk. Presenting a
+    // provisional deed restriction as settled fact would be exactly the
+    // kind of overclaim this project avoids, so the caveat travels with it.
+    const provisional = disclaimer && /provisional/i.test(disclaimer);
+
+    const note = [
+      type.meaning,
+      requirements ? `In OSE’s own words: “${requirements}”` : null,
+      jurisdiction && !/^(ose|office of the state engineer)$/i.test(jurisdiction)
+        ? `Administered by ${jurisdiction}, not the State Engineer alone.`
+        : null,
+      provisional
+        ? 'OSE marks this parcel data as provisional and not yet quality-checked — confirm against the deed on file with the County Clerk before relying on it.'
+        : null,
+    ].filter(Boolean).join(' ');
+
+    const limits = [];
+    if (clean(a.dom_well_limit) === 'Y') limits.push('domestic well limited');
+    if (clean(a.well_limit) === 'Y') limits.push('well limits apply');
+    if (clean(a.Meters) === 'Y') limits.push('metering required');
+
+    out.push({
+      kind: type.kind,
+      name: clean(a.Name) || clean(a.alt_name),
+      severity: type.severity,
+      note,
+      detail: [
+        limits.length ? limits.join(' · ') : null,
+        formatEffectiveDate(a.effect_date),
+        clean(a.doc_reference),
+      ].filter(Boolean).join(' · ') || null,
+    });
+  }
+
+  // The regulation layer holds genuine duplicates — Estancia Basin CMA is
+  // stored as two polygons, so a point inside it matched the same rule
+  // twice and read as two separate findings.
+  const seen = new Set();
+  const deduped = out.filter((a) => {
+    const key = `${a.kind}|${a.name || ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  out.length = 0;
+  out.push(...deduped);
+
+  for (const f of awrm) {
+    const name = clean(f.attributes.name);
+    out.push({
+      kind: 'Active Water Resource Management Basin',
+      name,
+      severity: 'medium',
+      note:
+        'This is one of seven basins the State Engineer has singled out for active management. That means metering, a water district with an appointed water master, and priority administration — so in a bad drought year junior rights here can be curtailed to protect senior ones.',
+      documentUrl: 'https://ose.state.nm.us/AWRM/index.php',
+      documentLabel: 'What AWRM means',
+    });
+  }
+
+  for (const f of basins) {
+    const a = f.attributes;
+    const name = clean(a.basin_desc) || clean(a.Basin);
+    out.push({
+      kind: 'Declared Groundwater Basin',
+      name,
+      severity: 'info',
+      // Being inside one is the normal case in New Mexico, not a red flag,
+      // and saying so prevents this reading as a warning it isn't.
+      note:
+        'Inside a declared basin the State Engineer has jurisdiction over groundwater, so drilling a well and putting water to new use requires an application to OSE rather than being a private matter. Nearly all of New Mexico’s groundwater now sits inside a declared basin, so this is the normal state of affairs rather than a restriction specific to this spot — it tells you which basin administers your water.',
+    });
+  }
+
+  for (const f of adjudications) {
+    const a = f.attributes;
+    const name = clean(a.ADJ_NAME);
+    // The layer carries a STATUS of 'O' or 'C', evenly split 14/14. Those
+    // almost certainly mean open and closed, but OSE's own adjudication
+    // pages list both an 'O' case and a 'C' case under "Active Cases", so
+    // the expansion could not be confirmed. Following the same rule used
+    // for Nevada's designation codes, an unconfirmed legal status is left
+    // out rather than guessed at — the name and OSE's page carry the point.
+    out.push({
+      kind: 'Adjudication Area',
+      name,
+      severity: 'info',
+      note:
+        'A court case to determine and confirm every water right in this area is under way or has been decided. Adjudication is how New Mexico settles who owns what and with which priority date, and it can confirm, reduce or reject a claimed right — so an unadjudicated right here is not yet a finally determined one.',
+      documentUrl: clean(a.MoreInfo),
+      documentLabel: 'OSE case page',
+    });
+  }
+
+  return out;
+}
+
+// OSE returns effective dates as epoch milliseconds, with the same
+// placeholder-year problem the points-of-diversion data has.
+function formatEffectiveDate(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const d = new Date(n);
+  if (Number.isNaN(d.getTime())) return null;
+  const year = d.getUTCFullYear();
+  if (year < 1600 || year > 2100) return null;
+  return `In effect since ${d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}`;
+}
+
 const SOURCES = {
   ID: idahoAreas,
   NV: nevadaAreas,
   UT: utahAreas,
   MT: montanaAreas,
   WY: wyomingAreas,
+  NM: newMexicoAreas,
 };
 
 // Returns [] when the state has no researched source, rather than implying

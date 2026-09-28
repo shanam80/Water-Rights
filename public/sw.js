@@ -21,7 +21,8 @@
 //
 // v2 — New Mexico added to the nav (2026-09-25)
 // v3 — restriction flagging added to Utah, Montana and Wyoming (2026-09-28)
-const SW_VERSION = 'v3';
+// v4 — restriction flagging added to New Mexico (2026-09-28)
+const SW_VERSION = 'v4';
 const SHELL_CACHE = `acrefoot-shell-${SW_VERSION}`;
 const PAGE_CACHE = `acrefoot-pages-${SW_VERSION}`;
 const API_CACHE = `acrefoot-api-${SW_VERSION}`;
