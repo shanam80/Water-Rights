@@ -19,6 +19,29 @@
 // OSE's own hub item was used instead.
 //
 // 279,991 points of diversion statewide at time of writing.
+//
+// No separate wells dataset is needed for New Mexico, and that was measured
+// rather than assumed (2026-09-28). This one layer already carries the well
+// itself, and carries it well: of 279,991 records, 196,924 give a well depth
+// (70%), 182,572 a casing size (65%) and 158,573 a depth to water (57%).
+// For contrast, Texas's log-depth coverage tops out near 2%. Sparser here:
+// static level 6%, discharge 3%, aquifer 1% — all handled as "not recorded"
+// rather than shown as zero.
+//
+// The one adjacent OSE well dataset was checked and rejected on the numbers.
+// OSE_Aquifer_Test_Wells_view_pub holds richer data — pumping rate, screen
+// interval, formation, geologic description — but only 3,455 rows statewide,
+// one per test rather than per well, and only 730 of them carry a POD record
+// number. So it can enrich roughly 0.26% of points of diversion and cannot
+// serve as a wells layer. It would only work as its own "aquifer tests near
+// here" feature, which is a new feature, not a gap in this one.
+//
+// Worth knowing, unbuilt: OSE also publishes DeclaredGroundwaterBasins on
+// this same host (39 polygons, verified to resolve Albuquerque to the Rio
+// Grande basin). Inside a declared basin a permit is required to drill;
+// outside one, groundwater is largely unregulated. That is the same class of
+// signal as services/administrativeAreas.js flags for the other states, and
+// New Mexico is not wired into it yet.
 const { fetchWithTimeout } = require('../../lib/http');
 const { TtlCache } = require('../../lib/cache');
 const { haversineMiles } = require('../../lib/geo');
